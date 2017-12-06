@@ -1,0 +1,127 @@
+#NEXUS 
+
+[! ***** MODELFIT BLOCK -- MODELTEST 3.0 *****]
+
+[The following command will calculate a NJ tree using the JC69 model of evolution]
+
+BEGIN PAUP;
+        [set criterion=likelihood;]
+        [lset nst=2 basefreq=empirical variant=hky;]
+	execute data.nex;
+	log file= modelfit.log replace;
+	DSet distance=hky objective=ME base=equal rates=equal pinv=0
+	subst=all negbrlen=setzero;
+	[NJ showtree=no breakties=random;]
+	gettrees file=data.tre storebrlens=y;
+        [lscores l / sitelikes userbrlens;]
+End;
+
+[!
+***** BEGIN TESTING 56 MODELS OF EVOLUTION ***** ]
+
+BEGIN PAUP;
+
+Default lscores longfmt=yes;
+Set criterion=like;
+
+[!
+** Model 1 of 56 * Calculating JC **]
+lscores  1/ nst=1  base=equal  rates=equal  pinv=0
+scorefile=model.scores replace; 
+
+[!
+** Model 5 of 56 * Calculating F81 **]
+lscores  1/ nst=1  base=est  rates=equal  pinv=0
+scorefile=model.scores  append; 
+
+[!
+** Model 9 of 56 * Calculating K80 **]
+lscores  1/ nst=2  base=equal  tratio=est  rates=equal  pinv=0
+scorefile=model.scores  append; 
+ 
+[!
+** Model 13 of 56 * Calculating HKY **]                
+lscores  1/ nst=2  base=est  tratio=est  rates=equal  pinv=0
+scorefile=model.scores  append; 
+
+[!
+** Model 17 of 56 * Calculating TrNef **]                            [a b c d e f]
+lscores  1/ nst=6  base=equal  rmat=est  rclass=(a b a a e a)  rates=equal  pinv=0
+scorefile=model.scores  append; 
+
+[!
+** Model 21 of 56 * Calculating TrN **] 
+lscores  1/ nst=6  base=est  rmat=est  rates=equal  pinv=0
+scorefile=model.scores  append; 
+
+
+[!
+** Model 25 of 56 * Calculating K3P **]                              [a b c d e f]
+lscores  1/ nst=6  base=equal  rmat=est  rclass=(a b c c b a)  rates=equal  pinv=0
+scorefile=model.scores  append; 
+
+
+[!
+** Model 29 of 56 * Calculating K3Puf **] 
+lscores  1/ nst=6  base=est  rmat=est  rates=equal  pinv=0
+scorefile=model.scores  append; 
+
+
+[!
+** Model 33 of 56 * Calculating TIMef **]                            [a b c d e f]
+lscores  1/ nst=6  base=equal  rmat=est  rclass=(a b c c e a)  rates=equal  pinv=0
+scorefile=model.scores  append; 
+
+
+[!
+** Model 37 of 56 * Calculating TIM **] 
+lscores  1/ nst=6  base=est  rmat=est  rates=equal  pinv=0
+scorefile=model.scores  append; 
+
+
+[!
+** Model 41 of 56 * Calculating TVMef **]                            [a b c d e f]
+lscores  1/ nst=6  base=equal  rmat=est  rclass=(a b c d b e)  rates=equal  pinv=0
+scorefile=model.scores  append; 
+
+
+[!
+** Model 45 of 56 * Calculating TVM **] 
+lscores  1/ nst=6  base=est  rmat=est  rates=equal  pinv=0
+scorefile=model.scores  append; 
+
+
+[!
+** Model 49 of 56 * Calculating SYM **]                               [a b c d e f]
+lscores  1/ nst=6  base=equal  rmat=est  rclass= (a b c d e f)  rates=equal  pinv=0
+scorefile=model.scores  append; 
+
+[!
+** Model 53 of 56 * Calculating GTR **] 
+lscores  1/ nst=6  base=est  rmat=est  rates=equal  pinv=0
+scorefile=model.scores  append; 
+
+
+LOG STOP;
+quit;
+END;
+
+[
+lscores: tree/s
+nst: number of substitution types
+rmat: rate matrix
+base= nucleotide frequencies
+rates= rate of evolution for variable sites (same 
+shape= alpha parameter of the gamma distribution
+pinv= proportion of invariable sites
+]
+
+[The likelihood ratio test statistic is calculated as twice the difference between 
+the log likelihood scores of the two models constrasted. When the model representing
+the null hypothesis is a special case of the alternate model, this statistic 
+fits a chi-square distribution with a number of degrees of freedom equal to the 
+number of parameters that freely vary between the two models. A detailed explanation 
+of the test of the model of DNA substitution can be found in Huelsenbeck and Crandall
+Annu. Rev. Ecol. Syst. 1997. 28: 437-466]
+
+[!***  END OF MODELTEST BLOCK  ***]

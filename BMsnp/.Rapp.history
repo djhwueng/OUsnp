@@ -1,0 +1,5016 @@
+print(D)#
+    print(tree.D.anc.vcv)
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-6#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-2#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+      Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+      Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+      Inode.length<-rbind(Inode,Inode.length)#
+      Inode.length <- Inode.length[,order(Inode.length[2,])]#
+      Inode.length #we have the info from the root tip to do cluster correctly#
+      geo.phy<-extractTree(phy) #from phylobase#
+      for(rootupindex in 1:k){#
+        #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+        tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+        #subtree.tip<-as.numeric(unlist(tip.num.set))#
+        #subtree.tip <- array(0,c(length(tip.num.set)))#
+        for(sbt.index in 1:length(subtree.tip)){#
+          subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+          }#
+          assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+        }#end for#
+      }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- 3#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+#      des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       #kindex<-2#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function#
+#
+      # D#
+     # print(tree.D.vcv)#
+     # print(vcv(phy))#
+     #D ok, tree not yet#
+     #tr<-rtree(10)#
+     #V<-vcv(tr)#
+     #vcv2phylo(V)#
+#
+     #tree.D.vcv#
+     #vcv2phylo#
+#
+     #tree.D#
+     #write tree first then add tip according to node and D.#
+     #finally return vcv.#
+#
+     #http://blog.phytools.org/2013/01/#
+#http://blog.phytools.org/2012/11/adding-single-tip-to-tree.html#
+# tree2<-pbtree(n=10)#
+# plotTree(tree2,node.numbers=T)#
+##
+# tree2$edge#
+# tip<-list(edge=matrix(c(2,1),1,2),tip.label="species name",edge.length=1.0,Nnode=1)#
+# class(tip)<-"phylo"#
+# tip#
+# btree<-bind.tree(tree2,tip,where=13)#
+# plot(btree)#
+# nodelabels()#
+##
+# btree$edge
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-6#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-2#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+      Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+      Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+      Inode.length<-rbind(Inode,Inode.length)#
+      Inode.length <- Inode.length[,order(Inode.length[2,])]#
+      Inode.length #we have the info from the root tip to do cluster correctly#
+      geo.phy<-extractTree(phy) #from phylobase#
+      for(rootupindex in 1:k){#
+        #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+        tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+        #subtree.tip<-as.numeric(unlist(tip.num.set))#
+        #subtree.tip <- array(0,c(length(tip.num.set)))#
+        for(sbt.index in 1:length(subtree.tip)){#
+          subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+          }#
+          assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+        }#end for#
+      }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- 3#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+#      des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       #kindex<-2#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-6#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-3#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+      Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+      Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+      Inode.length<-rbind(Inode,Inode.length)#
+      Inode.length <- Inode.length[,order(Inode.length[2,])]#
+      Inode.length #we have the info from the root tip to do cluster correctly#
+      geo.phy<-extractTree(phy) #from phylobase#
+      for(rootupindex in 1:k){#
+        #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+        tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+        #subtree.tip<-as.numeric(unlist(tip.num.set))#
+        #subtree.tip <- array(0,c(length(tip.num.set)))#
+        for(sbt.index in 1:length(subtree.tip)){#
+          subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+          }#
+          assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+        }#end for#
+      }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- 3#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+#      des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       #kindex<-2#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function
+diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]
+print(tree.D.anc.vcv)
+node.depth.edgelength(phy)[1:ntip]
+plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+#     if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+#       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+#       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+#       Inode.length<-rbind(Inode,Inode.length)#
+#       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+#       Inode.length #we have the info from the root tip to do cluster correctly#
+#       geo.phy<-extractTree(phy) #from phylobase#
+#       for(rootupindex in 1:k){#
+#         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+#         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+#         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+#         #subtree.tip <- array(0,c(length(tip.num.set)))#
+#         for(sbt.index in 1:length(subtree.tip)){#
+#           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+#           }#
+#           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+#         }#end for#
+#       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- 3#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+#      des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       #kindex<-2#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-6#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-3#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+#     if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+#       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+#       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+#       Inode.length<-rbind(Inode,Inode.length)#
+#       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+#       Inode.length #we have the info from the root tip to do cluster correctly#
+#       geo.phy<-extractTree(phy) #from phylobase#
+#       for(rootupindex in 1:k){#
+#         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+#         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+#         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+#         #subtree.tip <- array(0,c(length(tip.num.set)))#
+#         for(sbt.index in 1:length(subtree.tip)){#
+#           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+#           }#
+#           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+#         }#end for#
+#       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- 3#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+#      des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       #kindex<-2#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-6#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-4#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+#     if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+#       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+#       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+#       Inode.length<-rbind(Inode,Inode.length)#
+#       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+#       Inode.length #we have the info from the root tip to do cluster correctly#
+#       geo.phy<-extractTree(phy) #from phylobase#
+#       for(rootupindex in 1:k){#
+#         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+#         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+#         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+#         #subtree.tip <- array(0,c(length(tip.num.set)))#
+#         for(sbt.index in 1:length(subtree.tip)){#
+#           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+#           }#
+#           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+#         }#end for#
+#       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- 3#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+#      des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       #kindex<-2#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function
+kindex
+rownames(D)<-1:dim(D)[1]#
+     kmtx<-D
+kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow
+kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag
+print(tree.D.anc.vcv)
+rownames(D)<-1:dim(D)[1]
+print(tree.D.anc.vcv)
+rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)
+print(tree.D.anc.vcv)
+full.node.vcv[ancIndex,ancIndex]
+ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex
+full.node.vcv<-vcvPhylo(phy)
+full.node.vcv
+names(nonzero.column.index)
+ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))
+ancIndex
+length(ancIndex) != k
+tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))
+tree.D.anc.vcv
+tree.D.anc.vcv<- array(0,c(k,k))
+tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]
+tree.D.anc.vcv
+colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)
+colnames(full.node.vcv)[ancIndex]
+colnames(D)
+D
+print(D)
+k<-5#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+#     if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+#       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+#       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+#       Inode.length<-rbind(Inode,Inode.length)#
+#       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+#       Inode.length #we have the info from the root tip to do cluster correctly#
+#       geo.phy<-extractTree(phy) #from phylobase#
+#       for(rootupindex in 1:k){#
+#         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+#         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+#         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+#         #subtree.tip <- array(0,c(length(tip.num.set)))#
+#         for(sbt.index in 1:length(subtree.tip)){#
+#           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+#           }#
+#           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+#         }#end for#
+#       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- 3#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+#      des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)
+print(D)
+full.node.vcv<-vcvPhylo(phy)
+full.node.vcv
+ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex
+length(ancIndex) != k
+tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))
+tree.D.anc.vcv
+colnames(D)
+colnames(full.node.vcv)[ancIndex]
+D
+length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1
+Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       for(rootupindex in 1:k){#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         #subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+#       }#end if
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-6#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-5#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)
+length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-6#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-5#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))==1){#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       for(rootupindex in 1:k){#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         #subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-6#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-4#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))==1){#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       for(rootupindex in 1:k){#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         #subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-6#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-5#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))==1){#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       for(rootupindex in 1:k){#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         #subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if
+length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1
+Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase
+Inode
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-10#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-5#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))==1){#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       Inode#
+       for(rootupindex in 1:k){#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         #subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- 3#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+#      des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+  }#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-10#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-5#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))==1){#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       Inode#
+       for(rootupindex in 1:k){#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         #subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- 3#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+#      des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function
+full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}
+print(D)#
+     print(tree.D.anc.vcv)
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-10#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-5#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))==1){#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       Inode#
+       for(rootupindex in 1:k){#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         #subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- 3#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+#      des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)
+D<-array(0,c(ntip,k))
+stack.pos<-c(1:ntip)
+D
+tipdownindex<- k
+des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))
+des.pos
+Inode.length[1,tipdownindex]
+I14
+tipdownindex<- k#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)
+tipdownindex<- k-1#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)
+D
+tipdownindex<- k-2#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos
+Inode.length[1,tipdownindex]
+I16
+length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1
+Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       Inode
+Inode.length
+rootupindex<-1#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label
+tip.num.set
+for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for
+I12
+tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label
+tip.num.set
+rootupindex<-1#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)
+I12
+rootupindex<-2#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))
+I15
+rootupindex<-3#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)
+I16
+Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       Inode#
+       for(rootupindex in 1:k){#
+         #rootupindex<-3#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      tipdownindex<- k-2#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)
+D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      tipdownindex<- k-2#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)
+D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- k-2#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)
+Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       Inode#
+       for(rootupindex in 1:k){#
+         #rootupindex<-3#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- k-2#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       #kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-8#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-5#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))==1){#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       Inode#
+       for(rootupindex in 1:k){#
+         #rootupindex<-3#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- k-2#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       #kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-10#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-5#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))==1){#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       Inode#
+       for(rootupindex in 1:k){#
+         #rootupindex<-3#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- k-2#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       #kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-15#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-5#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))==1){#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       Inode#
+       for(rootupindex in 1:k){#
+         #rootupindex<-3#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- k-2#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       #kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function
+length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1
+get(paste("I",Inode.length[1,1],sep=""))
+Inode.length
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-15#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-5#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))==1){#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       Inode#
+       for(rootupindex in 1:k){#
+         #rootupindex<-3#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- k-2#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       #kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+#DV<- function(k=k, tree=tree){#
+#    phy<-tree#
+#    rm(list=ls())#
+#    phy<-rtree(8)#
+#    k<-2#
+    size<-15#
+    tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    k<-5#
+    plot(phy)#
+    nodelabels()#
+    tiplabels()#
+    ntip<-length(phy$tip.label)#
+#    if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))==1){#
+#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      #rootupindex<-3#
+      #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      #subtree.tip<-as.numeric(unlist(tip.num.set))##
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+#        print(paste("I",Inode.length[1,rootupindex],sep=""))#
+#        print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+      }#end for#
+#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       Inode#
+       for(rootupindex in 1:k){#
+         #rootupindex<-3#
+         #print(subset(geo.phy,node.subtree=Inode.length[1,rootupindex]))#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         #subtree.tip<-as.numeric(unlist(tip.num.set))#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+# #          print(paste("I",Inode.length[1,rootupindex],sep=""))#
+# #          print(get(paste("I",Inode.length[1,rootupindex],sep="")))#
+         }#end for#
+       }#end if#
+    ##NEED TO FIX BELOW FIRST TO GET CORRECT CLUSTER#
+    # we check if the latter is the descedant of the former#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    #tree.D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      #tipdownindex<- k-2#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      #for(insindex in 1:length(insert.pos)){#
+      #  tree.D[insert.pos[insindex],tipdownindex]<-nodeHeights(phy)[,2][which(phy$edge[,2]== insert.pos[insindex])]#
+      #  }#
+      }#
+      #print(insert.pos)#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      #stack.pos#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     D#
+     #colnames(tree.D)<-Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+#
+     #tree.D<-tree.D[,nonzero.column.index]#
+     #tree.D#
+     print(D)#
+#     print(dim(D))#
+     #tree.D.vcv#
+     #drop.tip(phy,)#
+    # need to check apply(D,1,sum)==1#
+     #V<-tree.D%*%t(tree.D) # covariance for non-diagonal#
+     #diag(V)<-node.depth.edgelength(phy)[1:ntip] # need to take care the order with D#
+     #V<-sqrt(tree.D%*%t(tree.D)) #this is vcv for covariance matrix not including tip#
+     #vcv(phy)#
+     #node.depth.edgelength(phy)#
+#     return(list(D=D,V=V))#
+#     }#
+#     t(D)%*%vcv(phy)%*%D#
+     full.node.vcv<-vcvPhylo(phy)#
+     full.node.vcv#
+     #D#
+     #plot(phy)#
+     #nodelabels()#
+     #D#
+     #tree.D.anc.index<-#
+#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     ancIndex#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+#
+     #row.index#
+     #col.index#
+     D#
+#
+     print(D)#
+     print(tree.D.anc.vcv)#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       #kindex<-1#
+       D#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       kdiag#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       kdiag#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       delrow.index#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       insrow#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+           kdown#
+         }#
+         kdown#
+         kmtx<- rbind(insrow,kdown)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         kmtx#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       D#
+       kup<- kdiag[1:(delrow.index-1),]#
+       kup#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         kup#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       kdown#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         kdown#
+         }#
+       }#
+       kmtx<- rbind(kup,insrow,kdown)#
+       kmtx#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       tree.D.anc.vcv#
+       D#
+       }#end of else#
+       #array(0,c(dim(tree.D.anc.vcv)[1]+ sum(D[,kindex])-1, dim(tree.D.anc.vcv)[2]))#
+       # colnames(D)[kindex]#
+       # tree.D.anc.vcv#
+       # rownames(Kmtx)<-which(D[,kindex]==1)#
+       # tree.D.anc.vcv<-Kmtx%*%tree.D.anc.vcv%*%t(Kmtx)#
+       # print(dim(tree.D.anc.vcv)[1])#
+       }#end of for kindex#
+     # tree.D.vcv<-D%*%tree.D.anc.vcv%*%t(D)#
+     diag(tree.D.anc.vcv)<- 1#node.depth.edgelength(phy)[1:ntip]#
+    print(D)#
+    print(tree.D.anc.vcv)#
+#     return(list(D=D,treevcv=tree.D.anc.vcv))#
+#     }#end of function
+rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+DV<- function(k=k, tree=tree){#
+    #tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    #plot(phy)#
+    #nodelabels()#
+    #tiplabels()#
+    ntip<-length(phy$tip.label)#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+      }#end for#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       for(rootupindex in 1:k){#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+         }#end for#
+       }#end if#
+#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      }#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+     full.node.vcv<-vcvPhylo(phy)#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         }#
+         kmtx<- rbind(insrow,kdown)#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       kup<- kdiag[1:(delrow.index-1),]#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         }#
+       }#
+#
+       kmtx<- rbind(kup,insrow,kdown)#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       }#end of else#
+       }#end of for kindex#
+     diag(tree.D.anc.vcv)<- 1#node.depth.edgelength(phy)[1:ntip]#
+     return(list(D=D,treevcv=tree.D.anc.vcv))#
+     }#end of function#
+size<-10#
+k=2#
+tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+print(DV(k=k,tree=tree))
+size<-10#
+k=2#
+tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+print(DV(k=k,tree=tree))
+ls(tree)
+size<-20#
+k=2#
+tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+print(DV(k=k,tree=tree))
+size<-20#
+k=5#
+tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+print(DV(k=k,tree=tree))
+#setwd("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/BMsnp")#
+setwd("~/Dropbox/YiWeiHsu/Rcode/main.code/BMsnp")#
+rm(list=ls())#
+#source("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/DV.r")#
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV.r")#
+#source("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/sim.snp.tree.yg.r")#
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/sim.snp.tree.yg.r")#
+#source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV.r")#
+LSS.bm<-function(k,trait=trait,tree=tree){#
+  n<-length(trait)#
+  DV.data<-DV(k=k,tree=tree)#
+  V<-DV.data$V#
+  D<-DV.data$D#
+  V.inv<-pseudoinverse(V)#
+  mu.hat<-pseudoinverse(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%trait#
+  sigma.sq.hat<- t(trait - D%*%mu.hat)%*%V.inv%*%(trait - D%*%mu.hat)/ntip#
+  NegLogML <- (Ntip(tree)/2)*log(2*pi)+(1/2)*t(trait- D%*%mu.hat)%*%V.inv%*%(trait- D%*%mu.hat) + (1/2)*log(abs(det(V))) #natural log multivariate noraml PDF取log#
+  loglik<- -NegLogML#
+  lss<- 2*loglik-k*log(n)#
+  return(lss)#
+  }#
+#
+permute.LSS.bm<- function(k,trait=trait,tree=tree,sims=sims){#
+  lss.array<-array(0,c(sims))#
+  for(sim.index in 1:sims){#
+    #    print(sim.index)#
+    permute.trait<-sample(trait)#
+    permute.lss.bm <- LSS.bm(k,trait=permute.trait,tree=tree)#
+    lss.array[sim.index]<-permute.lss.bm#
+     }#
+  return(lss.array)#
+  }#
+#
+k.array <- 3:5#
+#tree<-pbtree(n=ntip)#this is a sumulated tree#
+#trait<-rnorm(ntip) # this is a simulated trait#
+taxa.size<-10#
+seqlen<-1000#
+ouparams<-c(5,5,40,40,90,80,100)#
+names(ouparams)<-c("alp1","alp2","sig1","sig2","th0","th1","th2")#
+tree.trait<-sim.snp.tree.yg(taxa.size=taxa.size,seqlen=seqlen,ouparams=ouparams)#
+tree<-tree.trait$tree#
+trait<-matrix(tree.trait$trait$X,ncol=1)#
+rownames(trait)<-tree.trait$trait$Genus_species
+vcv(tree)
+plot(tree)
+tree
+tree$tip.label
+tree$tip.label<-paste("t",tree$tip.label,sep="")
+tree$tip.label
+vcv(tree)
+vcv.tree<-vcv(tree)#
+diag(vcv.tree)<-max(vcv.tree)#
+vcv.tree<-vcv.tree/max(vcv.tree)#
+vcv.tree
+tree2<-vcv2phylo(vcv.tree)
+plot(tree2)
+#setwd("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/BMsnp")#
+setwd("~/Dropbox/YiWeiHsu/Rcode/main.code/BMsnp")#
+rm(list=ls())#
+#source("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/DV.r")#
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV_test.r")#
+#source("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/sim.snp.tree.yg.r")#
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/sim.snp.tree.yg.r")#
+#source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV.r")#
+LSS.bm<-function(k,trait=trait,tree=tree){#
+  n<-length(trait)#
+  DV.data<-DV(k=k,tree=tree)#
+  V<-DV.data$V#
+  D<-DV.data$D#
+  V.inv<-pseudoinverse(V)#
+  mu.hat<-pseudoinverse(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%trait#
+  sigma.sq.hat<- t(trait - D%*%mu.hat)%*%V.inv%*%(trait - D%*%mu.hat)/ntip#
+  NegLogML <- (Ntip(tree)/2)*log(2*pi)+(1/2)*t(trait- D%*%mu.hat)%*%V.inv%*%(trait- D%*%mu.hat) + (1/2)*log(abs(det(V))) #natural log multivariate noraml PDF取log#
+  loglik<- -NegLogML#
+  lss<- 2*loglik-k*log(n)#
+  return(lss)#
+  }#
+#
+permute.LSS.bm<- function(k,trait=trait,tree=tree,sims=sims){#
+  lss.array<-array(0,c(sims))#
+  for(sim.index in 1:sims){#
+    #    print(sim.index)#
+    permute.trait<-sample(trait)#
+    permute.lss.bm <- LSS.bm(k,trait=permute.trait,tree=tree)#
+    lss.array[sim.index]<-permute.lss.bm#
+     }#
+  return(lss.array)#
+  }#
+#
+k.array <- 3:5#
+#tree<-pbtree(n=ntip)#this is a sumulated tree#
+#trait<-rnorm(ntip) # this is a simulated trait#
+taxa.size<-10#
+seqlen<-1000#
+ouparams<-c(5,5,40,40,90,80,100)#
+names(ouparams)<-c("alp1","alp2","sig1","sig2","th0","th1","th2")#
+tree.trait<-sim.snp.tree.yg(taxa.size=taxa.size,seqlen=seqlen,ouparams=ouparams)#
+tree<-tree.trait$tree#
+tree$tip.label<-paste("t",tree$tip.label,sep="")#
+tree$tip.label#
+#
+vcv.tree<-vcv(tree)#
+diag(vcv.tree)<-max(vcv.tree)#
+vcv.tree<-vcv.tree/max(vcv.tree)#
+vcv.tree#
+tree<-vcv2phylo(vcv.tree)#
+#plot(tree2)#
+#
+trait<-matrix(tree.trait$trait$X,ncol=1)#
+rownames(trait)<-tree.trait$trait$Genus_species
+trait
+tree$tip.label
+obs.LSS.bm.array <- array(0,c(length(k.array)))#
+for(kIndex in 1:length(k.array)){#
+  #kIndex<-1#
+  obs.LSS.bm.array[kIndex] <- LSS.bm(k.array[kIndex], trait=trait, tree=tree)#
+  }#
+print(obs.LSS.bm.array)#
+max.LSS.bm<-max(obs.LSS.bm.array)#
+print(max.LSS.bm)
+Index<
+-1
+kIndex<-1
+LSS.bm(k.array[kIndex], trait=trait, tree=tree)
+k.array[kIndex]
+trait
+tree
+n<-length(trait)
+DV.data<-DV(k=k,tree=tree)
+DV
+DV.data<-DV(k=k,tree=tree)
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV_test.r")
+DV.data<-DV(k=k,tree=tree)
+tree
+#setwd("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/BMsnp")#
+setwd("~/Dropbox/YiWeiHsu/Rcode/main.code/BMsnp")#
+rm(list=ls())#
+#source("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/DV.r")#
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV_test.r")#
+#source("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/sim.snp.tree.yg.r")#
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/sim.snp.tree.yg.r")#
+#source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV.r")#
+LSS.bm<-function(k,trait=trait,tree=tree){#
+  n<-length(trait)#
+  DV.data<-DV(k=k,tree=tree)#
+  V<-DV.data$V#
+  D<-DV.data$D#
+  V.inv<-pseudoinverse(V)#
+  mu.hat<-pseudoinverse(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%trait#
+  sigma.sq.hat<- t(trait - D%*%mu.hat)%*%V.inv%*%(trait - D%*%mu.hat)/ntip#
+  NegLogML <- (Ntip(tree)/2)*log(2*pi)+(1/2)*t(trait- D%*%mu.hat)%*%V.inv%*%(trait- D%*%mu.hat) + (1/2)*log(abs(det(V))) #natural log multivariate noraml PDF取log#
+  loglik<- -NegLogML#
+  lss<- 2*loglik-k*log(n)#
+  return(lss)#
+  }#
+#
+permute.LSS.bm<- function(k,trait=trait,tree=tree,sims=sims){#
+  lss.array<-array(0,c(sims))#
+  for(sim.index in 1:sims){#
+    #    print(sim.index)#
+    permute.trait<-sample(trait)#
+    permute.lss.bm <- LSS.bm(k,trait=permute.trait,tree=tree)#
+    lss.array[sim.index]<-permute.lss.bm#
+     }#
+  return(lss.array)#
+  }#
+#
+k.array <- 3:5#
+#tree<-pbtree(n=ntip)#this is a sumulated tree#
+#trait<-rnorm(ntip) # this is a simulated trait#
+taxa.size<-10#
+seqlen<-1000#
+ouparams<-c(5,5,40,40,90,80,100)#
+names(ouparams)<-c("alp1","alp2","sig1","sig2","th0","th1","th2")#
+tree.trait<-sim.snp.tree.yg(taxa.size=taxa.size,seqlen=seqlen,ouparams=ouparams)#
+tree<-tree.trait$tree#
+tree$tip.label<-paste("t",tree$tip.label,sep="")#
+tree$tip.label#
+#
+vcv.tree<-vcv(tree)#
+diag(vcv.tree)<-max(vcv.tree)#
+vcv.tree<-vcv.tree/max(vcv.tree)#
+tree<-vcv2phylo(vcv.tree)#
+trait<-matrix(tree.trait$trait$X,ncol=1)#
+rownames(trait)<-tree.trait$trait$Genus_species#
+#
+obs.LSS.bm.array <- array(0,c(length(k.array)))#
+for(kIndex in 1:length(k.array)){#
+  #kIndex<-1#
+  obs.LSS.bm.array[kIndex] <- LSS.bm(k.array[kIndex], trait=trait, tree=tree)#
+  }#
+print(obs.LSS.bm.array)#
+max.LSS.bm<-max(obs.LSS.bm.array)#
+print(max.LSS.bm)
+kIndex
+LSS.bm(k.array[kIndex], trait=trait, tree=tree)
+trait
+tree
+length(trait)
+DV.data<-DV(k=k,tree=tree)
+k
+k.array[kIndex]
+k<-k.array[kIndex]
+DV.data<-DV(k=k,tree=tree)
+obs.LSS.bm.array <- array(0,c(length(k.array)))#
+for(kIndex in 1:length(k.array)){#
+  #kIndex<-1#
+  obs.LSS.bm.array[kIndex] <- LSS.bm(k=k.array[kIndex], trait=trait, tree=tree)#
+  }
+Ntip(tree)
+LSS.bm<-function(k=k,trait=trait,tree=tree){#
+  n<-length(trait)#
+  DV.data<-DV(k=k,tree=tree)#
+  V<-DV.data$V#
+  D<-DV.data$D#
+  V.inv<-pseudoinverse(V)#
+  mu.hat<-pseudoinverse(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%trait#
+  sigma.sq.hat<- t(trait - D%*%mu.hat)%*%V.inv%*%(trait - D%*%mu.hat)/Ntip(tree)#
+  NegLogML <- (Ntip(tree)/2)*log(2*pi)+(1/2)*t(trait- D%*%mu.hat)%*%V.inv%*%(trait- D%*%mu.hat) + (1/2)*log(abs(det(V))) #natural log multivariate noraml PDF取log#
+  loglik<- -NegLogML#
+  lss<- 2*loglik-k*log(n)#
+  return(lss)#
+  }
+for(kIndex in 1:length(k.array)){#
+  #kIndex<-1#
+  obs.LSS.bm.array[kIndex] <- LSS.bm(k=k.array[kIndex], trait=trait, tree=tree)#
+  }
+obs.LSS.bm.array <- array(0,c(length(k.array)))#
+for(kIndex in 1:length(k.array)){#
+  #kIndex<-1#
+  obs.LSS.bm.array[kIndex] <- LSS.bm(k=k.array[kIndex], trait=trait, tree=tree)#
+  }
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV_test.r")
+obs.LSS.bm.array <- array(0,c(length(k.array)))#
+for(kIndex in 1:length(k.array)){#
+  #kIndex<-1#
+  obs.LSS.bm.array[kIndex] <- LSS.bm(k=k.array[kIndex], trait=trait, tree=tree)#
+  }
+k.array[kIndex]
+obs.LSS.bm.array
+k<-3
+n<-length(trait)#
+  DV.data<-DV(k=k,tree=tree)#
+  V<-DV.data$V#
+  D<-DV.data$D
+V
+D
+V.inv<-pseudoinverse(V)
+V.ini
+V.inv
+mu.hat<-pseudoinverse(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%trait
+sigma.sq.hat<- t(trait - D%*%mu.hat)%*%V.inv%*%(trait - D%*%mu.hat)/Ntip(tree)
+mu.hat
+sigma.hat
+sigma.sq.hat
+(Ntip(tree)/2)*log(2*pi)+(1/2)*t(trait- D%*%mu.hat)%*%V.inv%*%(trait- D%*%mu.hat) + (1/2)*log(abs(det(V))) #natural log multivariate noraml PDF取log
+det(V)
+V
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV_test.r")
+n<-length(trait)#
+  DV.data<-DV(k=k,tree=tree)#
+  V<-DV.data$V#
+  D<-DV.data$D#
+  V.inv<-pseudoinverse(V)#
+  mu.hat<-pseudoinverse(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%trait#
+  sigma.sq.hat<- t(trait - D%*%mu.hat)%*%V.inv%*%(trait - D%*%mu.hat)/Ntip(tree)
+(Ntip(tree)/2)*log(2*pi)+(1/2)*t(trait- D%*%mu.hat)%*%V.inv%*%(trait- D%*%mu.hat) + (1/2)*log(abs(det(V))) #natural log multivariate noraml PDF取log
+k<-4#
+  n<-length(trait)#
+  DV.data<-DV(k=k,tree=tree)#
+  V<-DV.data$V#
+  D<-DV.data$D#
+  V.inv<-pseudoinverse(V)#
+  mu.hat<-pseudoinverse(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%trait#
+  sigma.sq.hat<- t(trait - D%*%mu.hat)%*%V.inv%*%(trait - D%*%mu.hat)/Ntip(tree)#
+  NegLogML <- (Ntip(tree)/2)*log(2*pi)+(1/2)*t(trait- D%*%mu.hat)%*%V.inv%*%(trait- D%*%mu.hat) + (1/2)*log(abs(det(V))) #natural log multivariate noraml PDF取log
+NegLogML
+k<-5#
+  n<-length(trait)#
+  DV.data<-DV(k=k,tree=tree)#
+  V<-DV.data$V#
+  D<-DV.data$D
+V
+D
+k<-6#
+  n<-length(trait)#
+  DV.data<-DV(k=k,tree=tree)#
+  V<-DV.data$V#
+  D<-DV.data$D
+D
+taxa.size<-100#
+seqlen<-1000#
+ouparams<-c(5,5,40,40,90,80,100)#
+names(ouparams)<-c("alp1","alp2","sig1","sig2","th0","th1","th2")#
+tree.trait<-sim.snp.tree.yg(taxa.size=taxa.size,seqlen=seqlen,ouparams=ouparams)#
+tree<-tree.trait$tree#
+tree$tip.label<-paste("t",tree$tip.label,sep="")#
+tree$tip.label#
+#
+vcv.tree<-vcv(tree)#
+diag(vcv.tree)<-max(vcv.tree)#
+vcv.tree<-vcv.tree/max(vcv.tree)#
+tree<-vcv2phylo(vcv.tree)#
+trait<-matrix(tree.trait$trait$X,ncol=1)#
+rownames(trait)<-tree.trait$trait$Genus_species
+k.array <- 3:20#
+#
+  for(kIndex in 1:length(k.array)){#
+    k<-k.array[kIndex]      #
+    DV.data<-DV(k=k,tree=tree)#
+    V<-DV.data$V#
+    D<-DV.data$D#
+    print(dim(D)[2])#
+      }#
+    }
+for(kIndex in 1:length(k.array)){#
+    k<-k.array[kIndex]      #
+    DV.data<-DV(k=k,tree=tree)#
+    V<-DV.data$V#
+    D<-DV.data$D#
+    print(dim(D)[2])#
+      }
+DV.data<-DV(k=k,tree=tree)
+k
+tree
+plot(tree)
+taxa.size<-50#
+seqlen<-1000#
+ouparams<-c(5,5,40,40,90,80,100)#
+names(ouparams)<-c("alp1","alp2","sig1","sig2","th0","th1","th2")#
+tree.trait<-sim.snp.tree.yg(taxa.size=taxa.size,seqlen=seqlen,ouparams=ouparams)#
+tree<-tree.trait$tree#
+tree$tip.label<-paste("t",tree$tip.label,sep="")#
+tree$tip.label#
+#
+vcv.tree<-vcv(tree)#
+diag(vcv.tree)<-max(vcv.tree)#
+vcv.tree<-vcv.tree/max(vcv.tree)#
+tree<-vcv2phylo(vcv.tree)#
+trait<-matrix(tree.trait$trait$X,ncol=1)#
+rownames(trait)<-tree.trait$trait$Genus_species#
+#
+#we would like to get D and V first and store it.#
+#
+k.array <- 3:20#
+#
+  for(kIndex in 1:length(k.array)){#
+    k<-k.array[kIndex]      #
+    DV.data<-DV(k=k,tree=tree)#
+    V<-DV.data$V#
+    D<-DV.data$D#
+    print(dim(D)[2])#
+      }
+plot(tree)
+taxa.size<-50#
+seqlen<-1000#
+ouparams<-c(5,5,40,40,90,80,100)#
+names(ouparams)<-c("alp1","alp2","sig1","sig2","th0","th1","th2")#
+tree.trait<-sim.snp.tree.yg(taxa.size=taxa.size,seqlen=seqlen,ouparams=ouparams)#
+tree<-tree.trait$tree#
+tree$tip.label<-paste("t",tree$tip.label,sep="")#
+tree$tip.label
+plot(tree)
+k<-3#
+    #tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    #plot(phy)#
+    #nodelabels()#
+    #tiplabels()#
+    ntip<-length(phy$tip.label)#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy
+k<-3#
+    #tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    #plot(phy)#
+    #nodelabels()#
+    #tiplabels()#
+    ntip<-length(phy$tip.label)#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)
+Inode
+Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)
+Inode.length
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)
+DV<- function(k=k, tree=tree){#
+    k<-3#
+    #tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    #plot(phy)#
+    #nodelabels()#
+    #tiplabels()#
+    ntip<-length(phy$tip.label)#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV_test.r")
+LSS.bm<-function(k=k,trait=trait,V=V,D=D){
+LSS.bm<-function(k=k,trait=trait,V=V,D=D){#
+  V.inv<-pseudoinverse(V)#
+  mu.hat<-pseudoinverse(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%trait#
+  sigma.sq.hat<- t(trait - D%*%mu.hat)%*%V.inv%*%(trait - D%*%mu.hat)/n#
+  NegLogML <- (n/2)*log(2*pi)+(1/2)*t(trait- D%*%mu.hat)%*%V.inv%*%(trait- D%*%mu.hat) + (1/2)*log(abs(det(V))) #natural log multivariate noraml PDF取log#
+  loglik<- -NegLogML#
+  lss<- 2*loglik-k*log(n)#
+  return(lss)#
+  }
+permute.LSS.bm<- function(k,trait=trait,tree=tree,sims=sims){#
+  lss.array<-array(0,c(sims))#
+  for(sim.index in 1:sims){#
+    #    print(sim.index)#
+    permute.trait<-sample(trait)#
+    permute.lss.bm <- LSS.bm(k,trait=permute.trait,tree=tree)#
+    lss.array[sim.index]<-permute.lss.bm#
+     }#
+  return(lss.array)#
+  }
+taxa.size<-50#
+seqlen<-1000#
+ouparams<-c(5,5,40,40,90,80,100)#
+names(ouparams)<-c("alp1","alp2","sig1","sig2","th0","th1","th2")#
+tree.trait<-sim.snp.tree.yg(taxa.size=taxa.size,seqlen=seqlen,ouparams=ouparams)#
+tree<-tree.trait$tree#
+tree$tip.label<-paste("t",tree$tip.label,sep="")#
+tree$tip.label#
+plot(tree)
+vcv.tree<-vcv(tree)#
+diag(vcv.tree)<-max(vcv.tree)#
+vcv.tree<-vcv.tree/max(vcv.tree)#
+tree<-vcv2phylo(vcv.tree)#
+trait<-matrix(tree.trait$trait$X,ncol=1)#
+rownames(trait)<-tree.trait$trait$Genus_species
+plot(tree)#
+k.array <- 3:20#
+  for(kIndex in 1:length(k.array)){#
+    k<-k.array[kIndex]#
+    DV.data<-DV(k=k,tree=tree)#
+    V<-DV.data$V#
+    D<-DV.data$D#
+    print(dim(D)[2])#
+      }
+obs.LSS.bm.array <- array(0,c(length(k.array)))#
+for(kIndex in 1:length(k.array)){#
+  #kIndex<-1#
+#  k<-3#
+  obs.LSS.bm.array[kIndex] <- LSS.bm(k=k.array[kIndex], trait=trait, tree=tree)#
+  }#
+print(obs.LSS.bm.array)#
+max.LSS.bm<-max(obs.LSS.bm.array)#
+print(max.LSS.bm)
+sims<-100#
+sim.LSS.bm.array<-array(0,c(k,sims))#
+for(simIndex in 1:100){#
+   trait<-sample(trait)#
+   for(k in 1:length(k.array)){#
+   sim.LSS.bm.array[k,simIndex]<-LSS.bm(k,trait=trait,tree=tree)#
+      }#
+    }#
+sim.max.LSS<-apply(sim.LSS.bm.array, 2, max)#
+sim.max.LSS#
+ #permute.LSS.bm.array<-permute.LSS.bm(k,trait=trait,tree=tree,sims=sims)#
+ #the p.value for detection at each locus is the proportion of#
+ # #data sets scoring higher than the observed data set at each particular locus.#
+ p.value<-sum(sim.LSS.bm.array>c(max.LSS.bm))#
+ print(p.value)
+#rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)#
+DV<- function(k=k, tree=tree){#
+    k<-3#
+    #tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    #plot(phy)#
+    #nodelabels()#
+    #tiplabels()#
+    ntip<-length(phy$tip.label)#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+      }#end for#
+    #this is for tree with two clades in root#
+      if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       for(rootupindex in 1:k){#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+         }#end for#
+       }#end if#
+#
+    #assign to D from k to 1#
+    D<-array(0,c(ntip,k))#
+    stack.pos<-c(1:ntip)#
+    for(tipdownindex in k:1){#
+      des.pos<-get(paste("I",Inode.length[1,tipdownindex],sep=""))#
+     des.pos#
+      if(length(intersect(stack.pos,des.pos))!=0){#
+      insert.pos<-intersect(stack.pos,des.pos)#
+      D[insert.pos,tipdownindex] <-1#
+      }#
+#
+      stack.pos<-setdiff(stack.pos,des.pos)#
+      } #end of for loop#
+     colnames(D)<- Inode.length[1,1:k]#
+     nonzero.column.index<-!apply(D,2,sum)==0#
+     #nonzero.column.index#
+     D<-D[,nonzero.column.index]#
+     full.node.vcv<-vcvPhylo(phy)#
+     ancIndex<- which(colnames(full.node.vcv) %in% names(nonzero.column.index))#
+     if(length(ancIndex) != k ){#
+      tree.D.anc.vcv<- array(0,c(k,k))#
+      tree.D.anc.vcv[1:length(ancIndex),1:length(ancIndex)] <- full.node.vcv[ancIndex,ancIndex]#
+      colnames(tree.D.anc.vcv)<-rownames(tree.D.anc.vcv)<- c(colnames(full.node.vcv)[ancIndex] ,setdiff(colnames(D),colnames(full.node.vcv)[ancIndex]))#
+    }else{tree.D.anc.vcv<-full.node.vcv[ancIndex,ancIndex]}#
+     rownames(D)<-1:dim(D)[1]#
+     kmtx<-D#
+     for(kindex in 1:dim(D)[2]){#
+       kdiag <- diag(1,dim(tree.D.anc.vcv))#
+       rownames(kdiag)<-colnames(kdiag)<-rownames(tree.D.anc.vcv)#
+       delrow.index <- which(rownames(kdiag)== colnames(D)[kindex])#
+       insrow<-array(0, c(sum(D[,kindex]), dim(tree.D.anc.vcv)[1]  ))#
+       colnames(insrow)<-colnames(kdiag)#
+       insrow[   ,delrow.index]<-1#
+       rownames(insrow)<- which(D[,kindex]==1)#
+       if(delrow.index==1){ #only down#
+         kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+         if(is.null(dim(kdown))){#
+           kdown<-matrix(kdown,nrow=1)#
+           rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         }#
+         kmtx<- rbind(insrow,kdown)#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         }else if(delrow.index==dim(kmtx)[1]){#only up#
+         kup<- kdiag[1:(delrow.index-1),]#
+         kmtx<- rbind(kup,insrow)#
+         tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+         tree.D.anc.vcv#
+         }else{#
+       kup<- kdiag[1:(delrow.index-1),]#
+       if(is.null(dim(kup))){#
+         kup<-matrix(kup,nrow=1)#
+         rownames(kup)<-rownames(kdiag)[1]#
+         }#
+       kdown<-NULL#
+       if(delrow.index<dim(kdiag)[1]){#
+       kdown<-kdiag[(delrow.index+1):dim(kdiag)[1] ,  ]#
+       if(is.null(dim(kdown))){#
+         kdown<-matrix(kdown,nrow=1)#
+         rownames(kdown)<-rownames(kdiag)[dim(kdiag)[1]]#
+         }#
+       }#
+#
+       kmtx<- rbind(kup,insrow,kdown)#
+       tree.D.anc.vcv<-kmtx%*%tree.D.anc.vcv%*%t(kmtx)#
+       }#end of else#
+       }#end of for kindex#
+     diag(tree.D.anc.vcv)<-  1 #node.depth.edgelength(phy)[1:ntip]#
+#
+     return(list(D=D,V=tree.D.anc.vcv))#
+     }#end of function#
+# size<-20#
+# k=5#
+# tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+# plot(tree)#
+# nodelabels()#
+# tiplabels()#
+# print(DV(k=k,tree=tree))
+#setwd("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/BMsnp")#
+setwd("~/Dropbox/YiWeiHsu/Rcode/main.code/BMsnp")#
+rm(list=ls())#
+#source("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/DV.r")#
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV_test.r")#
+#source("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/sim.snp.tree.yg.r")#
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/sim.snp.tree.yg.r")#
+#source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV.r")#
+#
+LSS.bm<-function(k=k,trait=trait,V=V,D=D){#
+  V.inv<-pseudoinverse(V)#
+  mu.hat<-pseudoinverse(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%trait#
+  sigma.sq.hat<- t(trait - D%*%mu.hat)%*%V.inv%*%(trait - D%*%mu.hat)/n#
+  NegLogML <- (n/2)*log(2*pi)+(1/2)*t(trait- D%*%mu.hat)%*%V.inv%*%(trait- D%*%mu.hat) + (1/2)*log(abs(det(V))) #natural log multivariate noraml PDF取log#
+  loglik<- -NegLogML#
+  lss<- 2*loglik-k*log(n)#
+  return(lss)#
+  }#
+#
+permute.LSS.bm<- function(k,trait=trait,tree=tree,sims=sims){#
+  lss.array<-array(0,c(sims))#
+  for(sim.index in 1:sims){#
+    #    print(sim.index)#
+    permute.trait<-sample(trait)#
+    permute.lss.bm <- LSS.bm(k,trait=permute.trait,tree=tree)#
+    lss.array[sim.index]<-permute.lss.bm#
+     }#
+  return(lss.array)#
+  }#
+#
+#tree<-pbtree(n=ntip)#this is a sumulated tree#
+#trait<-rnorm(ntip) # this is a simulated trait#
+taxa.size<-50#
+seqlen<-1000#
+ouparams<-c(5,5,40,40,90,80,100)#
+names(ouparams)<-c("alp1","alp2","sig1","sig2","th0","th1","th2")#
+tree.trait<-sim.snp.tree.yg(taxa.size=taxa.size,seqlen=seqlen,ouparams=ouparams)#
+tree<-tree.trait$tree#
+tree$tip.label<-paste("t",tree$tip.label,sep="")#
+tree$tip.label#
+plot(tree)#
+#
+vcv.tree<-vcv(tree)#
+diag(vcv.tree)<-max(vcv.tree)#
+vcv.tree<-vcv.tree/max(vcv.tree)#
+tree<-vcv2phylo(vcv.tree)#
+trait<-matrix(tree.trait$trait$X,ncol=1)#
+rownames(trait)<-tree.trait$trait$Genus_species#
+#
+#we would like to get D and V first and store it.#
+plot(tree)#
+k.array <- 3:20#
+  for(kIndex in 1:length(k.array)){#
+    k<-k.array[kIndex]#
+    DV.data<-DV(k=k,tree=tree)#
+    V<-DV.data$V#
+    D<-DV.data$D#
+    print(dim(D)[2])#
+      }#
+obs.LSS.bm.array <- array(0,c(length(k.array)))#
+for(kIndex in 1:length(k.array)){#
+  #kIndex<-1#
+#  k<-3#
+  obs.LSS.bm.array[kIndex] <- LSS.bm(k=k.array[kIndex], trait=trait, tree=tree)#
+  }#
+print(obs.LSS.bm.array)#
+max.LSS.bm<-max(obs.LSS.bm.array)#
+print(max.LSS.bm)#
+# DV.data<-DV(k=k,tree=tree)#
+# V<-DV.data$V#
+# D<-DV.data$D#
+# V.inv<-pseudoinverse(V)#
+# mu.hat<-pseudoinverse(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%trait#
+# sigma.sq.hat<- t(trait - D%*%mu.hat)%*%V.inv%*%(trait - D%*%mu.hat)/ntip#
+# print(mu.hat)#
+# print(sigma.sq.hat)#
+##
+##
+# obs.LSS.bm<-LSS.bm(k,trait=trait,tree=tree)#
+# print(LSS.bm(k,trait=trait,tree=tree))#
+##
+##
+sims<-100#
+sim.LSS.bm.array<-array(0,c(k,sims))#
+for(simIndex in 1:100){#
+   trait<-sample(trait)#
+   for(k in 1:length(k.array)){#
+   sim.LSS.bm.array[k,simIndex]<-LSS.bm(k,trait=trait,tree=tree)#
+      }#
+    }#
+sim.max.LSS<-apply(sim.LSS.bm.array, 2, max)#
+sim.max.LSS#
+ #permute.LSS.bm.array<-permute.LSS.bm(k,trait=trait,tree=tree,sims=sims)#
+ #the p.value for detection at each locus is the proportion of#
+ # #data sets scoring higher than the observed data set at each particular locus.#
+ p.value<-sum(sim.LSS.bm.array>c(max.LSS.bm))#
+ print(p.value)#
+##
+# sample(1:5)#
+# 將原始資料丟進LSS裡面跑，出來的最大值就是我們分的群數，然後我們將分數重新做排列(sample)，重新排列完#
+# 在丟回LSS裡面做計算，看看兩次的分數，有差異的地方就是有顯著性的SNP
+max.LSS.bm
+taxa.size<-50#
+seqlen<-1000#
+ouparams<-c(5,5,40,40,90,80,100)#
+names(ouparams)<-c("alp1","alp2","sig1","sig2","th0","th1","th2")#
+tree.trait<-sim.snp.tree.yg(taxa.size=taxa.size,seqlen=seqlen,ouparams=ouparams)#
+tree<-tree.trait$tree#
+tree$tip.label<-paste("t",tree$tip.label,sep="")#
+tree$tip.label#
+plot(tree)
+vcv.tree<-vcv(tree)#
+diag(vcv.tree)<-max(vcv.tree)#
+vcv.tree<-vcv.tree/max(vcv.tree)#
+tree<-vcv2phylo(vcv.tree)#
+trait<-matrix(tree.trait$trait$X,ncol=1)#
+rownames(trait)<-tree.trait$trait$Genus_species
+plot(tree)
+rm(list=ls())
+# rm(list=ls())#
+library(phytools)#
+library(phyclust)#
+library(ape)#
+library(phangorn)#
+library(corpcor)#
+library(phylobase)#
+library(TreeSim)
+DV<- function(k=k, tree=tree){#
+    k<-3#
+    #tree <-  sim.bd.taxa.age(n=size, numbsim=1, lambda=1, mu=1, frac = 0.5, age=1, mrca = TRUE)[[1]]#
+    phy<-reorder(tree, "postorder") #reorder(x, order = c("preorder", "postorder","caldewise","pruningwise"))#
+    #plot(phy)#
+    #nodelabels()#
+    #tiplabels()#
+    ntip<-length(phy$tip.label)#
+    #this is for tree with one outgroup#
+    Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip)))]),nrow=1)#
+    Inode.length<-rbind(Inode,Inode.length)#
+    Inode.length <- Inode.length[,order(Inode.length[2,])]#
+    Inode.length #we have the info from the root tip to do cluster correctly#
+    geo.phy<-extractTree(phy) #from phylobase#
+    geo.phy#
+    for(rootupindex in 1:k){#
+      tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+      subtree.tip <- array(0,c(length(tip.num.set)))#
+      for(sbt.index in 1:length(subtree.tip)){#
+        subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2]) #for rtree with label t1, t2, ...#
+        }#
+        assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+      }#end for
+plot(phy)
+if(length(setdiff( get(paste("I",Inode.length[1,1],sep="")), get(paste("I",Inode.length[1,2],sep=""))))!=1){#
+       Inode<- matrix(unique(c(phy$edge)[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-matrix(unique(c(nodeHeights(phy))[!(c(phy$edge) %in% (1:(ntip+1)))]),nrow=1)#
+       Inode.length<-rbind(Inode,Inode.length)#
+       Inode.length <- Inode.length[,order(Inode.length[2,])]#
+       Inode.length #we have the info from the root tip to do cluster correctly#
+       geo.phy<-extractTree(phy) #from phylobase#
+       for(rootupindex in 1:k){#
+         tip.num.set <- subset(geo.phy,node.subtree=Inode.length[1,rootupindex])@label#
+         subtree.tip <- array(0,c(length(tip.num.set)))#
+         for(sbt.index in 1:length(subtree.tip)){#
+           subtree.tip[sbt.index]<-as.numeric(unlist(strsplit(tip.num.set[sbt.index],split="t"))[2])#
+           }#
+           assign(paste("I", Inode.length[1,rootupindex],sep=""),subtree.tip)#
+         }#end for#
+       }#end if
+#setwd("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/BMsnp")#
+setwd("~/Dropbox/YiWeiHsu/Rcode/main.code/BMsnp")#
+rm(list=ls())#
+#source("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/DV.r")#
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV_test.r")#
+#source("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/sim.snp.tree.yg.r")#
+source("~/Dropbox/YiWeiHsu/Rcode/main.code/sim.snp.tree.yg.r")#
+#source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV.r")#
+#
+LSS.bm<-function(k=k,trait=trait,V=V,D=D){#
+  V.inv<-pseudoinverse(V)#
+  mu.hat<-pseudoinverse(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%trait#
+  sigma.sq.hat<- t(trait - D%*%mu.hat)%*%V.inv%*%(trait - D%*%mu.hat)/n#
+  NegLogML <- (n/2)*log(2*pi)+(1/2)*t(trait- D%*%mu.hat)%*%V.inv%*%(trait- D%*%mu.hat) + (1/2)*log(abs(det(V))) #natural log multivariate noraml PDF取log#
+  loglik<- -NegLogML#
+  lss<- 2*loglik-k*log(n)#
+  return(lss)#
+  }#
+#
+permute.LSS.bm<- function(k,trait=trait,tree=tree,sims=sims){#
+  lss.array<-array(0,c(sims))#
+  for(sim.index in 1:sims){#
+    #    print(sim.index)#
+    permute.trait<-sample(trait)#
+    permute.lss.bm <- LSS.bm(k,trait=permute.trait,tree=tree)#
+    lss.array[sim.index]<-permute.lss.bm#
+     }#
+  return(lss.array)#
+  }#
+#
+#tree<-pbtree(n=ntip)#this is a sumulated tree#
+#trait<-rnorm(ntip) # this is a simulated trait#
+taxa.size<-5#
+seqlen<-1000#
+ouparams<-c(5,5,40,40,90,80,100)#
+names(ouparams)<-c("alp1","alp2","sig1","sig2","th0","th1","th2")#
+tree.trait<-sim.snp.tree.yg(taxa.size=taxa.size,seqlen=seqlen,ouparams=ouparams)#
+tree<-tree.trait$tree#
+tree$tip.label<-paste("t",tree$tip.label,sep="")#
+tree$tip.label#
+plot(tree)
+taxa.size<-5#
+seqlen<-1000#
+ouparams<-c(5,5,40,40,90,80,100)#
+names(ouparams)<-c("alp1","alp2","sig1","sig2","th0","th1","th2")#
+tree.trait<-sim.snp.tree.yg(taxa.size=taxa.size,seqlen=seqlen,ouparams=ouparams)#
+tree<-tree.trait$tree#
+tree$tip.label<-paste("t",tree$tip.label,sep="")#
+tree$tip.label#
+par(mfrow=c(1,3))#
+plot(tree)
+tree.trait<-sim.snp.tree.yg(taxa.size=taxa.size,seqlen=seqlen,ouparams=ouparams)#
+tree<-tree.trait$tree#
+tree$tip.label<-paste("t",tree$tip.label,sep="")#
+tree$tip.label#
+plot(tree)

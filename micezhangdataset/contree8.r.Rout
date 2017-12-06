@@ -1,0 +1,139 @@
+
+R version 3.4.2 (2017-09-28) -- "Short Summer"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R 是免費軟體，不提供任何擔保。
+在某些條件下您可以將其自由散布。
+用 'license()' 或 'licence()' 來獲得散布的詳細條件。
+
+R 是個合作計劃，有許多人為之做出了貢獻。
+用 'contributors()' 來看詳細的情況並且
+用 'citation()' 會告訴您如何在出版品中正確地參照 R 或 R 套件。
+
+用 'demo()' 來看一些示範程式，用 'help()' 來檢視線上輔助檔案，或
+用 'help.start()' 透過 HTML 瀏覽器來看輔助檔案。
+用 'q()' 離開 R。
+
+> rm(list=ls())
+> library(phytools)
+Loading required package: ape
+Loading required package: maps
+> setwd("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/micezhangdataset/")
+> load("realtree.RData")
+> 
+> y8<-list(phy5=phy5, phy6=phy6)
+> class(y8) <- "multiPhylo"
+> contree8<-ls.consensus(y8,tol=1e-3)
+Best Q = 254976321.983934
+Best Q = 238826515.342635
+Best Q = 223930859.736982
+Best Q = 216728261.2058
+Best Q = 214266312.251014
+Best Q = 212931563.122859
+Best Q = 211218192.25416
+Best Q = 210598500.184114
+Best Q = 209144035.800096
+Best Q = 208621508.925091
+Best Q = 208254306.566883
+Best Q = 207708865.786971
+Best Q = 207369277.255836
+Best Q = 207081974.256857
+Best Q = 206850211.985853
+Best Q = 206676806.983498
+Best Q = 205944956.303711
+Best Q = 205829018.64271
+Best Q = 205724251.829419
+Best Q = 205276933.945014
+Best Q = 205003937.599582
+Best Q = 204921560.714155
+Best Q = 204763684.410391
+Best Q = 204683364.694457
+Best Q = 204619621.155869
+Best Q = 204191292.232655
+Best Q = 203978381.560781
+Best Q = 203736855.386679
+Best Q = 203095077.559553
+Best Q = 202760245.957651
+Best Q = 202699839.222457
+Best Q = 202656686.836379
+Best Q = 202614913.417024
+Best Q = 202575319.262175
+Best Q = 202544830.13994
+Best Q = 202521597.440953
+Best Q = 202488272.312952
+Best Q = 202465505.970178
+Best Q = 201992291.112626
+Best Q = 201627705.782889
+Best Q = 201373828.424993
+Best Q = 201157148.431971
+Best Q = 201122433.360729
+Best Q = 201080103.247434
+Best Q = 200805216.522805
+Best Q = 200735419.469739
+Best Q = 200610114.447281
+Best Q = 200425010.848014
+Best Q = 200302208.310573
+Best Q = 200072726.558343
+Best Q = 200019570.67824
+Best Q = 199986672.757221
+Best Q = 199962835.676328
+Best Q = 199935403.509276
+Best Q = 199914255.398359
+Best Q = 199897065.162492
+Best Q = 199880504.143845
+Best Q = 199867333.636122
+Best Q = 199854974.306907
+Best Q = 199843207.759422
+Best Q = 199831592.969611
+Best Q = 199817697.014368
+Best Q = 199807093.092875
+Best Q = 199797700.761344
+Best Q = 199788499.330502
+Best Q = 199762988.326666
+Best Q = 199754006.279876
+Best Q = 199603114.175495
+Best Q = 199583264.154311
+Best Q = 199574282.452938
+Best Q = 199567861.602041
+Best Q = 199561621.683298
+Best Q = 199546658.925607
+Best Q = 199540804.44772
+Best Q = 199535154.015649
+Best Q = 199367077.806882
+Best Q = 199254858.009607
+Best Q = 198657150.910053
+Best Q = 198643002.244042
+Best Q = 198338314.076872
+Best Q = 198237420.550803
+Best Q = 196771328.07666
+Best Q = 196472671.426845
+Best Q = 196468205.513499
+Best Q = 196463774.808316
+Best Q = 196460595.125988
+Best Q = 196457563.786779
+Best Q = 196452807.373019
+Best Q = 196449965.302175
+Best Q = 196447566.116773
+Best Q = 196445600.932546
+Best Q = 196444147.425867
+Best Q = 196442926.286539
+Best Q = 196441850.548189
+Best Q = 196440986.631316
+Best Q = 196440333.683431
+Best Q = 196439818.559168
+Best Q = 196429565.588585
+Best Q = 196412634.726237
+Best Q = 196393784.863503
+Best Q = 196386639.145392
+Best Q = 196386168.088724
+Best Q = 196385926.913168
+Best Q = 196385709.325841
+Best Q = 196385698.936683
+Best Q = 196385698.936683
+Solution found after 106 set of nearest neighbor interchanges.
+> save.image("contree8.RData")
+> 
+> proc.time()
+    user   system  elapsed 
+1513.776  174.445 1688.744 

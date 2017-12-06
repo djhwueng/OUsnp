@@ -1,0 +1,177 @@
+
+P A U P *
+Version 4.0a (build 158) for Macintosh OS X (built on Oct 22 2017 at 13:20:18)
+Fri Nov  3 15:32:27 2017
+
+        -----------------------------NOTICE-----------------------------
+          This is an alpha-test version that is still changing rapidly.
+          It will expire on 1 Apr 2018.
+        
+          Please report bugs to david.swofford@duke.edu
+        ----------------------------------------------------------------
+
+
+***** BEGIN TESTING 56 MODELS OF EVOLUTION *****
+
+NOTE: The longFmt option in the Defaults command is no longer supported and has been ignored.
+
+Optimality criterion set to likelihood.
+
+** Model 1 of 56 * Calculating JC **
+
+Likelihood scores of tree(s) in memory:
+---------------------------------------
+  1159 characters are included
+  Likelihood settings:
+    Current model:
+                             Data type = standard
+                     State frequencies = equal
+        Proportion of invariable sites = none
+               Rates at variable sites = equal
+
+    Number of distinct data patterns under this model = 718
+    Molecular clock not enforced
+    Starting branch lengths obtained using Rogers-Swofford approximation method
+    Branch-length optimization = one-dimensional Newton-Raphson with pass limit=20, tolerance=1e-07
+    Likelihood calculations performed in single precision
+    Vector processing disabled (not supported for Mkv models or models with fewer than 4 states)
+    Conditional-likelihood rescaling threshold = 1e-20
+    Using 1 thread on 6 physical (12 logical) processors
+
+Tree             1
+------------------
+-ln L    100948.90
+
+Time used to compute likelihoods = 0.57 sec (CPU time = 0.58 sec)
+
+Tree scores (and parameter estimates) written to file:
+~/Dropbox/YiWeiHsu/Rcode/main.code/micezhangdataset/model.scores
+
+** Model 5 of 56 * Calculating F81 **
+
+Likelihood scores of tree(s) in memory:
+---------------------------------------
+  1159 characters are included
+  Likelihood settings:
+    Current model:
+                             Data type = standard
+                     State frequencies = estimated
+        Proportion of invariable sites = none
+               Rates at variable sites = equal
+
+    Number of distinct data patterns under this model = 718
+    Molecular clock not enforced
+    Starting branch lengths obtained using Rogers-Swofford approximation method
+    Branch-length optimization = one-dimensional Newton-Raphson with pass limit=20, tolerance=1e-07
+    Likelihood calculations performed in single precision
+    Vector processing disabled (not supported for Mkv models or models with fewer than 4 states)
+    Conditional-likelihood rescaling threshold = 1e-20
+    Using 1 thread on 6 physical (12 logical) processors
+
+Tree             1
+------------------
+-ln L    97937.085
+State frequencies:
+  0       0.213679
+  1       0.786321
+
+Time used to compute likelihoods = 4.27 sec (CPU time = 4.26 sec)
+
+Tree scores (and parameter estimates) written to file:
+~/Dropbox/YiWeiHsu/Rcode/main.code/micezhangdataset/model.scores
+
+** Model 9 of 56 * Calculating K80 **
+
+Likelihood scores of tree(s) in memory:
+---------------------------------------
+  1159 characters are included
+  Likelihood settings:
+    Current model:
+                             Data type = standard
+                     State frequencies = equal
+        Proportion of invariable sites = none
+               Rates at variable sites = equal
+
+    Number of distinct data patterns under this model = 718
+    Molecular clock not enforced
+    Starting branch lengths obtained using Rogers-Swofford approximation method
+    Branch-length optimization = one-dimensional Newton-Raphson with pass limit=20, tolerance=1e-07
+    Likelihood calculations performed in single precision
+    Vector processing disabled (not supported for Mkv models or models with fewer than 4 states)
+    Conditional-likelihood rescaling threshold = 1e-20
+    Using 1 thread on 6 physical (12 logical) processors
+
+Tree             1
+------------------
+-ln L    100948.90
+
+Time used to compute likelihoods = 0.56 sec (CPU time = 0.56 sec)
+
+Tree scores (and parameter estimates) written to file:
+~/Dropbox/YiWeiHsu/Rcode/main.code/micezhangdataset/model.scores
+
+** Model 13 of 56 * Calculating HKY **
+
+Likelihood scores of tree(s) in memory:
+---------------------------------------
+  1159 characters are included
+  Likelihood settings:
+    Current model:
+                             Data type = standard
+                     State frequencies = estimated
+        Proportion of invariable sites = none
+               Rates at variable sites = equal
+
+    Number of distinct data patterns under this model = 718
+    Molecular clock not enforced
+    Starting branch lengths obtained using Rogers-Swofford approximation method
+    Branch-length optimization = one-dimensional Newton-Raphson with pass limit=20, tolerance=1e-07
+    Likelihood calculations performed in single precision
+    Vector processing disabled (not supported for Mkv models or models with fewer than 4 states)
+    Conditional-likelihood rescaling threshold = 1e-20
+    Using 1 thread on 6 physical (12 logical) processors
+
+Tree             1
+------------------
+-ln L    97937.085
+State frequencies:
+  0       0.213679
+  1       0.786321
+
+Time used to compute likelihoods = 4.35 sec (CPU time = 4.34 sec)
+
+Tree scores (and parameter estimates) written to file:
+~/Dropbox/YiWeiHsu/Rcode/main.code/micezhangdataset/model.scores
+
+** Model 53 of 56 * Calculating GTR **
+
+Likelihood scores of tree(s) in memory:
+---------------------------------------
+  1159 characters are included
+  Likelihood settings:
+    Current model:
+                             Data type = standard
+                     State frequencies = estimated
+        Proportion of invariable sites = none
+               Rates at variable sites = equal
+
+    Number of distinct data patterns under this model = 718
+    Molecular clock not enforced
+    Starting branch lengths obtained using Rogers-Swofford approximation method
+    Branch-length optimization = one-dimensional Newton-Raphson with pass limit=20, tolerance=1e-07
+    Likelihood calculations performed in single precision
+    Vector processing disabled (not supported for Mkv models or models with fewer than 4 states)
+    Conditional-likelihood rescaling threshold = 1e-20
+    Using 1 thread on 6 physical (12 logical) processors
+
+Tree             1
+------------------
+-ln L    97937.085
+State frequencies:
+  0       0.213679
+  1       0.786321
+
+Time used to compute likelihoods = 4.35 sec (CPU time = 4.35 sec)
+
+Tree scores (and parameter estimates) written to file:
+~/Dropbox/YiWeiHsu/Rcode/main.code/micezhangdataset/model.scores

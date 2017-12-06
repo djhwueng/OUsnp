@@ -1,0 +1,3470 @@
+likelihood(proposal,Yg=Yg,Ye=c(Ye),r=r,k=k,rho=rho,tree=tree)
+alpha.pps<-alpha.proposal(Yg)#slower
+proposal<-c(alpha.pps, chain[i,2:length(startvalue)])
+proposal
+head(chain)
+probab=exp(posterior(proposal,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree) - posterior(chain[i-1,],Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree))
+probab
+runif(1)<probab
+chain[i,]=c(chain[i-1,1], chain[i,2:length(startvalue)] )
+chain[i,]
+run_metropolis_MCMC_within_Gibbs<-function(startvalue=startvalue,iterations=interations,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree, a=a,b=b,c=c,d=d){#
+  #iterations=50000#
+  chain=array(0,c(iterations+1,1+(r+1)+1+1+k)) #alpha, beta, sigma.sq, nu.sq, mu#
+  colnames(chain)<-c( "alpha",paste("beta",0:r,sep=""), "sigma.sq","nu.sq",paste("mu",1:k,sep=""))#
+  chain[1,]=startvalue#
+  diploid.size<-length(Yg)#
+  Z<-d.mtx(n=length(Yg))#
+  DV.data<-DV(k=k,tree=tree) #more care need on the DV function#
+  D<-DV.data$D#
+  V<-DV.data$V#
+  Va<- VaF(alpha,V=V)#
+  ZD<-Z%*%D#
+  X<-matrix(runif(n=diploid.size, min=5, max=5), ncol=1)#
+  one<-array(1,c(diploid.size,1))#
+  des.X<-cbind(one,X)#
+  tdes.X.des.X<-t(des.X)%*%des.X#
+#
+  Ze<-matrix(rmvnorm(n=1,mean=20+4*X,sigma=40*diag(1,c(diploid.size, diploid.size))),ncol=1)#
+  Ye<-(1-rho)*Ze#
+#
+  for(i in 2:iterations){#
+    alpha<-chain[i-1,1] #need to check#
+    Va<-VaF(alpha,V=V)#
+    ZVatZ.inv<-pseudoinverse(Z%*%Va%*%t(Z))#
+#
+    Y <- Yg+Ye#
+#
+    #Gibb starts#
+    sigma.sq.shape <- a + diploid.size/2#
+    sigma.sq.scale <- b + 0.5*t(Yg-ZD%*%mu)%*%ZVatZ.inv%*%(Yg-ZD%*%mu)#
+    sigma.sq <- rinvgamma(1,shape=sigma.sq.shape, scale = sigma.sq.scale)#
+#
+    nu.sq.shape<-c + diploid.size/2#
+    nu.sq.scale<-d + 0.5*t(Y-des.X%*%beta-Yg)%*%(Y-des.X%*%beta-Yg)#
+    nu.sq<-rinvgamma(1,shape=nu.sq.shape,scale=nu.sq.scale)#
+#
+    V.yg<-pseudoinverse(ZVatZ.inv/sigma.sq  + diag(1,c(diploid.size,diploid.size))/nu.sq)#
+    V.yg.stuff<-V.yg%*%((Y-des.X%*%beta)/nu.sq  + ZVatZ.inv%*%ZD%*%mu/sigma.sq)#
+    Yg<-matrix(rmvnorm(n=1,mean=V.yg.stuff,sigma=V.yg),ncol=1)#
+#
+    mu0<-array(0,c(k,1))#
+    V.mu <- pseudoinverse( t(ZD)%*%ZVatZ.inv%*%ZD/sigma.sq + diag(1,c(k,k))/w.sq )#
+    V.mu.stuff<-V.mu%*%(  t(ZD)%*%ZVatZ.inv%*%Yg /sigma.sq + mu0/w.sq  )#
+    mu<-matrix(rmvnorm(1,mean=V.mu.stuff,sigma=V.mu),ncol=1)#
+#
+    u.sq<-100#
+    V.beta<-pseudoinverse(tdes.X.des.X/nu.sq + diag(1,dim(tdes.X.des.X))/u.sq )#
+    beta0<-array(0,c(r+1,1))#
+    V.beta.stuff<-V.beta%*%( t(des.X)%*%(Y-Yg) /nu.sq + beta0/u.sq )#
+    beta<-matrix(rmvnorm(n=1,mean=V.beta.stuff, sigma=V.beta), ncol=1)#
+#
+    chain[i,2:length(startvalue)]<-c(beta, sigma.sq,nu.sq,mu)#
+    #Gibb ends#
+#
+    #mh starts#
+    alpha.pps<-alpha.proposal(Yg)#slower#
+    proposal<-c(alpha.pps, chain[i,2:length(startvalue)])#
+#
+    likelihood(proposal,Yg=Yg,Ye=Ye,r=r,k=k,rho=rho,tree=tree)#
+    model.params<-proposal#
+    probab=exp(posterior(proposal,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree) - posterior(chain[i-1,],Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree))#
+      if(runif(1)<probab){#
+        chain[i,]=c(alpha.pps, chain[i,2:length(startvalue)])#
+        }else{#
+          chain[i,]=c(chain[i-1,1], chain[i,2:length(startvalue)] )#
+        }#
+    #mh ends#
+      }#end for loop#
+  return(chain)#
+  }
+startvalue= c(rexp(1), rnorm(r+1), rexp(1), rexp(1), rnorm(k) )
+chain = run_metropolis_MCMC_within_Gibbs(startvalue=startvalue,iterations=50000,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree, a=a,b=b,c=c,d=d)
+run_metropolis_MCMC_within_Gibbs<-function(startvalue=startvalue,iterations=interations,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree, a=a,b=b,c=c,d=d){#
+  #iterations=50000#
+  chain=array(0,c(iterations+1,1+(r+1)+1+1+k)) #alpha, beta, sigma.sq, nu.sq, mu#
+  colnames(chain)<-c( "alpha",paste("beta",0:r,sep=""), "sigma.sq","nu.sq",paste("mu",1:k,sep=""))#
+  chain[1,]=startvalue#
+  diploid.size<-length(Yg)#
+  Z<-d.mtx(n=length(Yg))#
+  DV.data<-DV(k=k,tree=tree) #more care need on the DV function#
+  D<-DV.data$D#
+  V<-DV.data$V#
+  Va<- VaF(alpha,V=V)#
+  ZD<-Z%*%D#
+  X<-matrix(runif(n=diploid.size, min=5, max=5), ncol=1)#
+  one<-array(1,c(diploid.size,1))#
+  des.X<-cbind(one,X)#
+  tdes.X.des.X<-t(des.X)%*%des.X#
+#
+  Ze<-matrix(rmvnorm(n=1,mean=20+4*X,sigma=40*diag(1,c(diploid.size, diploid.size))),ncol=1)#
+  Ye<-(1-rho)*Ze#
+#
+  for(i in 2:iterations){#
+#
+    if(i%%1000==0){print(i)}#
+    alpha<-chain[i-1,1] #need to check#
+    Va<-VaF(alpha,V=V)#
+    ZVatZ.inv<-pseudoinverse(Z%*%Va%*%t(Z))#
+#
+    Y <- Yg+Ye#
+#
+    #Gibb starts#
+    sigma.sq.shape <- a + diploid.size/2#
+    sigma.sq.scale <- b + 0.5*t(Yg-ZD%*%mu)%*%ZVatZ.inv%*%(Yg-ZD%*%mu)#
+    sigma.sq <- rinvgamma(1,shape=sigma.sq.shape, scale = sigma.sq.scale)#
+#
+    nu.sq.shape<-c + diploid.size/2#
+    nu.sq.scale<-d + 0.5*t(Y-des.X%*%beta-Yg)%*%(Y-des.X%*%beta-Yg)#
+    nu.sq<-rinvgamma(1,shape=nu.sq.shape,scale=nu.sq.scale)#
+#
+    V.yg<-pseudoinverse(ZVatZ.inv/sigma.sq  + diag(1,c(diploid.size,diploid.size))/nu.sq)#
+    V.yg.stuff<-V.yg%*%((Y-des.X%*%beta)/nu.sq  + ZVatZ.inv%*%ZD%*%mu/sigma.sq)#
+    Yg<-matrix(rmvnorm(n=1,mean=V.yg.stuff,sigma=V.yg),ncol=1)#
+#
+    mu0<-array(0,c(k,1))#
+    V.mu <- pseudoinverse( t(ZD)%*%ZVatZ.inv%*%ZD/sigma.sq + diag(1,c(k,k))/w.sq )#
+    V.mu.stuff<-V.mu%*%(  t(ZD)%*%ZVatZ.inv%*%Yg /sigma.sq + mu0/w.sq  )#
+    mu<-matrix(rmvnorm(1,mean=V.mu.stuff,sigma=V.mu),ncol=1)#
+#
+    u.sq<-100#
+    V.beta<-pseudoinverse(tdes.X.des.X/nu.sq + diag(1,dim(tdes.X.des.X))/u.sq )#
+    beta0<-array(0,c(r+1,1))#
+    V.beta.stuff<-V.beta%*%( t(des.X)%*%(Y-Yg) /nu.sq + beta0/u.sq )#
+    beta<-matrix(rmvnorm(n=1,mean=V.beta.stuff, sigma=V.beta), ncol=1)#
+#
+    chain[i,2:length(startvalue)]<-c(beta, sigma.sq,nu.sq,mu)#
+    #Gibb ends#
+#
+    #mh starts#
+    alpha.pps<-alpha.proposal(Yg)#slower#
+    proposal<-c(alpha.pps, chain[i,2:length(startvalue)])#
+#
+    likelihood(proposal,Yg=Yg,Ye=Ye,r=r,k=k,rho=rho,tree=tree)#
+    model.params<-proposal#
+    probab=exp(posterior(proposal,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree) - posterior(chain[i-1,],Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree))#
+      if(runif(1)<probab){#
+        chain[i,]=c(alpha.pps, chain[i,2:length(startvalue)])#
+        }else{#
+          chain[i,]=c(chain[i-1,1], chain[i,2:length(startvalue)] )#
+        }#
+    #mh ends#
+      }#end for loop#
+  return(chain)#
+  }#
+#
+#alpha            b0            b1        sig.sq         nu.sq           mu1           mu2       mu3#
+# 0.391505446   0.394397955  -8.062240686   0.004365570   0.002004884 -12.779226547  -5.700671144  -10.547468962#
+#
+startvalue= c(rexp(1), rnorm(r+1), rexp(1), rexp(1), rnorm(k) )#
+#
+chain = run_metropolis_MCMC_within_Gibbs(startvalue=startvalue,iterations=50000,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree, a=a,b=b,c=c,d=d)#
+burnIn =10000#
+acceptance = 1- mean(duplicated(chain[-(1:burnIn),] ))#
+print(acceptance)
+run_metropolis_MCMC_within_Gibbs<-function(startvalue=startvalue,iterations=interations,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree, a=a,b=b,c=c,d=d){#
+  #iterations=50000#
+  chain=array(0,c(iterations+1,1+(r+1)+1+1+k)) #alpha, beta, sigma.sq, nu.sq, mu#
+  colnames(chain)<-c( "alpha",paste("beta",0:r,sep=""), "sigma.sq","nu.sq",paste("mu",1:k,sep=""))#
+  chain[1,]=startvalue#
+  diploid.size<-length(Yg)#
+  Z<-d.mtx(n=length(Yg))#
+  DV.data<-DV(k=k,tree=tree) #more care need on the DV function#
+  D<-DV.data$D#
+  V<-DV.data$V#
+  Va<- VaF(alpha,V=V)#
+  ZD<-Z%*%D#
+  X<-matrix(runif(n=diploid.size, min=5, max=5), ncol=1)#
+  one<-array(1,c(diploid.size,1))#
+  des.X<-cbind(one,X)#
+  tdes.X.des.X<-t(des.X)%*%des.X#
+#
+  Ze<-matrix(rmvnorm(n=1,mean=20+4*X,sigma=40*diag(1,c(diploid.size, diploid.size))),ncol=1)#
+  Ye<-(1-rho)*Ze#
+#
+  for(i in 2:iterations){#
+#
+    if(i%%50==0){print(i)}#
+    alpha<-chain[i-1,1] #need to check#
+    Va<-VaF(alpha,V=V)#
+    ZVatZ.inv<-pseudoinverse(Z%*%Va%*%t(Z))#
+#
+    Y <- Yg+Ye#
+#
+    #Gibb starts#
+    sigma.sq.shape <- a + diploid.size/2#
+    sigma.sq.scale <- b + 0.5*t(Yg-ZD%*%mu)%*%ZVatZ.inv%*%(Yg-ZD%*%mu)#
+    sigma.sq <- rinvgamma(1,shape=sigma.sq.shape, scale = sigma.sq.scale)#
+#
+    nu.sq.shape<-c + diploid.size/2#
+    nu.sq.scale<-d + 0.5*t(Y-des.X%*%beta-Yg)%*%(Y-des.X%*%beta-Yg)#
+    nu.sq<-rinvgamma(1,shape=nu.sq.shape,scale=nu.sq.scale)#
+#
+    V.yg<-pseudoinverse(ZVatZ.inv/sigma.sq  + diag(1,c(diploid.size,diploid.size))/nu.sq)#
+    V.yg.stuff<-V.yg%*%((Y-des.X%*%beta)/nu.sq  + ZVatZ.inv%*%ZD%*%mu/sigma.sq)#
+    Yg<-matrix(rmvnorm(n=1,mean=V.yg.stuff,sigma=V.yg),ncol=1)#
+#
+    mu0<-array(0,c(k,1))#
+    V.mu <- pseudoinverse( t(ZD)%*%ZVatZ.inv%*%ZD/sigma.sq + diag(1,c(k,k))/w.sq )#
+    V.mu.stuff<-V.mu%*%(  t(ZD)%*%ZVatZ.inv%*%Yg /sigma.sq + mu0/w.sq  )#
+    mu<-matrix(rmvnorm(1,mean=V.mu.stuff,sigma=V.mu),ncol=1)#
+#
+    u.sq<-100#
+    V.beta<-pseudoinverse(tdes.X.des.X/nu.sq + diag(1,dim(tdes.X.des.X))/u.sq )#
+    beta0<-array(0,c(r+1,1))#
+    V.beta.stuff<-V.beta%*%( t(des.X)%*%(Y-Yg) /nu.sq + beta0/u.sq )#
+    beta<-matrix(rmvnorm(n=1,mean=V.beta.stuff, sigma=V.beta), ncol=1)#
+#
+    chain[i,2:length(startvalue)]<-c(beta, sigma.sq,nu.sq,mu)#
+    #Gibb ends#
+#
+    #mh starts#
+    alpha.pps<-alpha.proposal(Yg)#slower#
+    proposal<-c(alpha.pps, chain[i,2:length(startvalue)])#
+#
+    likelihood(proposal,Yg=Yg,Ye=Ye,r=r,k=k,rho=rho,tree=tree)#
+    model.params<-proposal#
+    probab=exp(posterior(proposal,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree) - posterior(chain[i-1,],Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree))#
+      if(runif(1)<probab){#
+        chain[i,]=c(alpha.pps, chain[i,2:length(startvalue)])#
+        }else{#
+          chain[i,]=c(chain[i-1,1], chain[i,2:length(startvalue)] )#
+        }#
+    #mh ends#
+      }#end for loop#
+  return(chain)#
+  }#
+#
+#alpha            b0            b1        sig.sq         nu.sq           mu1           mu2       mu3#
+# 0.391505446   0.394397955  -8.062240686   0.004365570   0.002004884 -12.779226547  -5.700671144  -10.547468962#
+#
+startvalue= c(rexp(1), rnorm(r+1), rexp(1), rexp(1), rnorm(k) )#
+#
+chain = run_metropolis_MCMC_within_Gibbs(startvalue=startvalue,iterations=50000,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree, a=a,b=b,c=c,d=d)#
+burnIn =10000#
+acceptance = 1- mean(duplicated(chain[-(1:burnIn),] ))#
+print(acceptance)
+run_metropolis_MCMC_within_Gibbs<-function(startvalue=startvalue,iterations=interations,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree, a=a,b=b,c=c,d=d){#
+  #iterations=50000#
+  chain=array(0,c(iterations+1,1+(r+1)+1+1+k)) #alpha, beta, sigma.sq, nu.sq, mu#
+  colnames(chain)<-c( "alpha",paste("beta",0:r,sep=""), "sigma.sq","nu.sq",paste("mu",1:k,sep=""))#
+  chain[1,]=startvalue#
+  diploid.size<-length(Yg)#
+  Z<-d.mtx(n=length(Yg))#
+  DV.data<-DV(k=k,tree=tree) #more care need on the DV function#
+  D<-DV.data$D#
+  V<-DV.data$V#
+  Va<- VaF(alpha,V=V)#
+  ZD<-Z%*%D#
+  X<-matrix(runif(n=diploid.size, min=5, max=5), ncol=1)#
+  one<-array(1,c(diploid.size,1))#
+  des.X<-cbind(one,X)#
+  tdes.X.des.X<-t(des.X)%*%des.X#
+#
+  Ze<-matrix(rmvnorm(n=1,mean=20+4*X,sigma=40*diag(1,c(diploid.size, diploid.size))),ncol=1)#
+  Ye<-(1-rho)*Ze#
+#
+  for(i in 2:iterations){#
+#
+    if(i%%10==0)print(i)#
+    alpha<-chain[i-1,1] #need to check#
+    Va<-VaF(alpha,V=V)#
+    ZVatZ.inv<-pseudoinverse(Z%*%Va%*%t(Z))#
+#
+    Y <- Yg+Ye#
+#
+    #Gibb starts#
+    sigma.sq.shape <- a + diploid.size/2#
+    sigma.sq.scale <- b + 0.5*t(Yg-ZD%*%mu)%*%ZVatZ.inv%*%(Yg-ZD%*%mu)#
+    sigma.sq <- rinvgamma(1,shape=sigma.sq.shape, scale = sigma.sq.scale)#
+#
+    nu.sq.shape<-c + diploid.size/2#
+    nu.sq.scale<-d + 0.5*t(Y-des.X%*%beta-Yg)%*%(Y-des.X%*%beta-Yg)#
+    nu.sq<-rinvgamma(1,shape=nu.sq.shape,scale=nu.sq.scale)#
+#
+    V.yg<-pseudoinverse(ZVatZ.inv/sigma.sq  + diag(1,c(diploid.size,diploid.size))/nu.sq)#
+    V.yg.stuff<-V.yg%*%((Y-des.X%*%beta)/nu.sq  + ZVatZ.inv%*%ZD%*%mu/sigma.sq)#
+    Yg<-matrix(rmvnorm(n=1,mean=V.yg.stuff,sigma=V.yg),ncol=1)#
+#
+    mu0<-array(0,c(k,1))#
+    V.mu <- pseudoinverse( t(ZD)%*%ZVatZ.inv%*%ZD/sigma.sq + diag(1,c(k,k))/w.sq )#
+    V.mu.stuff<-V.mu%*%(  t(ZD)%*%ZVatZ.inv%*%Yg /sigma.sq + mu0/w.sq  )#
+    mu<-matrix(rmvnorm(1,mean=V.mu.stuff,sigma=V.mu),ncol=1)#
+#
+    u.sq<-100#
+    V.beta<-pseudoinverse(tdes.X.des.X/nu.sq + diag(1,dim(tdes.X.des.X))/u.sq )#
+    beta0<-array(0,c(r+1,1))#
+    V.beta.stuff<-V.beta%*%( t(des.X)%*%(Y-Yg) /nu.sq + beta0/u.sq )#
+    beta<-matrix(rmvnorm(n=1,mean=V.beta.stuff, sigma=V.beta), ncol=1)#
+#
+    chain[i,2:length(startvalue)]<-c(beta, sigma.sq,nu.sq,mu)#
+    #Gibb ends#
+#
+    #mh starts#
+    alpha.pps<-alpha.proposal(Yg)#slower#
+    proposal<-c(alpha.pps, chain[i,2:length(startvalue)])#
+#
+    likelihood(proposal,Yg=Yg,Ye=Ye,r=r,k=k,rho=rho,tree=tree)#
+    model.params<-proposal#
+    probab=exp(posterior(proposal,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree) - posterior(chain[i-1,],Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree))#
+      if(runif(1)<probab){#
+        chain[i,]=c(alpha.pps, chain[i,2:length(startvalue)])#
+        }else{#
+          chain[i,]=c(chain[i-1,1], chain[i,2:length(startvalue)] )#
+        }#
+    #mh ends#
+      }#end for loop#
+  return(chain)#
+  }#
+#
+#alpha            b0            b1        sig.sq         nu.sq           mu1           mu2       mu3#
+# 0.391505446   0.394397955  -8.062240686   0.004365570   0.002004884 -12.779226547  -5.700671144  -10.547468962#
+#
+startvalue= c(rexp(1), rnorm(r+1), rexp(1), rexp(1), rnorm(k) )#
+#
+chain = run_metropolis_MCMC_within_Gibbs(startvalue=startvalue,iterations=50000,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree, a=a,b=b,c=c,d=d)#
+burnIn =10000#
+acceptance = 1- mean(duplicated(chain[-(1:burnIn),] ))#
+print(acceptance)#
+#
+hist(chain[-(1:brunIn),1],nclass=30, main="Posterior of alpha", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1]))#
+abline(v=alpha,col=red)#
+#
+hist(chain[-(1:brunIn),1+1+r],nclass=30, main="Posterior of beta1", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1+1+r]))#
+abline(v=beta[2],col="red")#
+#
+hist(chain[-(1:brunIn),1+1+r+1],nclass=30, main="Posterior of sigma.sq", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1+1+r+1]))#
+abline(v=sigma.sq,col="red")#
+#
+hist(chain[-(1:brunIn),1+1+r+1+1],nclass=30, main="Posterior of nu.sq", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1+1+r+1+1]))#
+abline(v=nu.sq,col="red")#
+plot(chain[-(1:burnIn),1],type="l",xlab="True value of red line", main="alpha")#
+abline(h=alpha, col="red")#
+#
+plot(chain[-(1:burnIn),1+1+r],type="l",xlab="True value of red line", main="beta1")#
+abline(h=beta[2], col="red")#
+#
+plot(chain[-(1:burnIn),1+1+r+1],type="l",xlab="True value of red line", main="sigma.sq")#
+abline(h=sigma.sq, col="red")#
+#
+plot(chain[-(1:burnIn),1+1+r+1+1],type="l",xlab="True value of red line", main="nu.sq")#
+abline(h=nu.sq, col="red")
+alpha.proposal<-function(alpha){#
+  # we can use MLE estimate and sd from geiger packages#
+  #?fitContinuous#
+  #trait<-matrix(trait,ncol=1)#
+  #tree<- rcoal(length(trait))#It would be better if we use the tree we construct. #compute.brlen(stree(length(trait),type="left"))#
+  #rownames(trait)<-tree$tip.label#
+  #ou.geiger<-fitContinuous(phy=tree,dat=trait, model="OU")#
+  #tree<-stree(length(trait),type="star")#can do this, need to fix DV function#
+  #ou.result<-optimize(OUnegloglike, lower=0,upper=10  ,k=k, trait=trait, tree=tree)#
+  #alpha#
+  #use star tree#
+  #return(rnorm(1,mean= ou.geiger$opt$alpha, sd=ou.geiger$opt$alpha/3 ) )#
+  return(rnorm(1, mean=alpha, sd = alpha/4))#
+  }#
+print(alpha.proposal(1))
+run_metropolis_MCMC_within_Gibbs<-function(startvalue=startvalue,iterations=interations,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree, a=a,b=b,c=c,d=d){#
+  #iterations=50000#
+  chain=array(0,c(iterations+1,1+(r+1)+1+1+k)) #alpha, beta, sigma.sq, nu.sq, mu#
+  colnames(chain)<-c( "alpha",paste("beta",0:r,sep=""), "sigma.sq","nu.sq",paste("mu",1:k,sep=""))#
+  chain[1,]=startvalue#
+  diploid.size<-length(Yg)#
+  Z<-d.mtx(n=length(Yg))#
+  DV.data<-DV(k=k,tree=tree) #more care need on the DV function#
+  D<-DV.data$D#
+  V<-DV.data$V#
+  Va<- VaF(alpha,V=V)#
+  ZD<-Z%*%D#
+  X<-matrix(runif(n=diploid.size, min=5, max=5), ncol=1)#
+  one<-array(1,c(diploid.size,1))#
+  des.X<-cbind(one,X)#
+  tdes.X.des.X<-t(des.X)%*%des.X#
+#
+  Ze<-matrix(rmvnorm(n=1,mean=20+4*X,sigma=40*diag(1,c(diploid.size, diploid.size))),ncol=1)#
+  Ye<-(1-rho)*Ze#
+#
+  for(i in 2:iterations){#
+#
+    if(i%%10==0)print(i)#
+    alpha<-chain[i-1,1] #need to check#
+    Va<-VaF(alpha,V=V)#
+    ZVatZ.inv<-pseudoinverse(Z%*%Va%*%t(Z))#
+#
+    Y <- Yg+Ye#
+#
+    #Gibb starts#
+    sigma.sq.shape <- a + diploid.size/2#
+    sigma.sq.scale <- b + 0.5*t(Yg-ZD%*%mu)%*%ZVatZ.inv%*%(Yg-ZD%*%mu)#
+    sigma.sq <- rinvgamma(1,shape=sigma.sq.shape, scale = sigma.sq.scale)#
+#
+    nu.sq.shape<-c + diploid.size/2#
+    nu.sq.scale<-d + 0.5*t(Y-des.X%*%beta-Yg)%*%(Y-des.X%*%beta-Yg)#
+    nu.sq<-rinvgamma(1,shape=nu.sq.shape,scale=nu.sq.scale)#
+#
+    V.yg<-pseudoinverse(ZVatZ.inv/sigma.sq  + diag(1,c(diploid.size,diploid.size))/nu.sq)#
+    V.yg.stuff<-V.yg%*%((Y-des.X%*%beta)/nu.sq  + ZVatZ.inv%*%ZD%*%mu/sigma.sq)#
+    Yg<-matrix(rmvnorm(n=1,mean=V.yg.stuff,sigma=V.yg),ncol=1)#
+#
+    mu0<-array(0,c(k,1))#
+    V.mu <- pseudoinverse( t(ZD)%*%ZVatZ.inv%*%ZD/sigma.sq + diag(1,c(k,k))/w.sq )#
+    V.mu.stuff<-V.mu%*%(  t(ZD)%*%ZVatZ.inv%*%Yg /sigma.sq + mu0/w.sq  )#
+    mu<-matrix(rmvnorm(1,mean=V.mu.stuff,sigma=V.mu),ncol=1)#
+#
+    u.sq<-100#
+    V.beta<-pseudoinverse(tdes.X.des.X/nu.sq + diag(1,dim(tdes.X.des.X))/u.sq )#
+    beta0<-array(0,c(r+1,1))#
+    V.beta.stuff<-V.beta%*%( t(des.X)%*%(Y-Yg) /nu.sq + beta0/u.sq )#
+    beta<-matrix(rmvnorm(n=1,mean=V.beta.stuff, sigma=V.beta), ncol=1)#
+#
+    chain[i,2:length(startvalue)]<-c(beta, sigma.sq,nu.sq,mu)#
+    #Gibb ends#
+#
+    #mh starts#
+    alpha.pps<-alpha.proposal(chain[i-1,1]) #slower#
+    proposal<-c(alpha.pps, chain[i,2:length(startvalue)])#
+#
+    likelihood(proposal,Yg=Yg,Ye=Ye,r=r,k=k,rho=rho,tree=tree)#
+    model.params<-proposal#
+    probab=exp(posterior(proposal,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree) - posterior(chain[i-1,],Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree))#
+      if(runif(1)<probab){#
+        chain[i,]=c(alpha.pps, chain[i,2:length(startvalue)])#
+        }else{#
+          chain[i,]=c(chain[i-1,1], chain[i,2:length(startvalue)] )#
+        }#
+    #mh ends#
+      }#end for loop#
+  return(chain)#
+  }#
+#
+#alpha            b0            b1        sig.sq         nu.sq           mu1           mu2       mu3#
+# 0.391505446   0.394397955  -8.062240686   0.004365570   0.002004884 -12.779226547  -5.700671144  -10.547468962#
+#
+startvalue= c(rexp(1), rnorm(r+1), rexp(1), rexp(1), rnorm(k) )#
+#
+chain = run_metropolis_MCMC_within_Gibbs(startvalue=startvalue,iterations=50000,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree, a=a,b=b,c=c,d=d)#
+burnIn =10000#
+acceptance = 1- mean(duplicated(chain[-(1:burnIn),] ))#
+print(acceptance)
+run_metropolis_MCMC_within_Gibbs<-function(startvalue=startvalue,iterations=interations,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree, a=a,b=b,c=c,d=d){#
+  #iterations=50000#
+  chain=array(0,c(iterations+1,1+(r+1)+1+1+k)) #alpha, beta, sigma.sq, nu.sq, mu#
+  colnames(chain)<-c( "alpha",paste("beta",0:r,sep=""), "sigma.sq","nu.sq",paste("mu",1:k,sep=""))#
+  chain[1,]=startvalue#
+  diploid.size<-length(Yg)#
+  Z<-d.mtx(n=length(Yg))#
+  DV.data<-DV(k=k,tree=tree) #more care need on the DV function#
+  D<-DV.data$D#
+  V<-DV.data$V#
+  Va<- VaF(alpha,V=V)#
+  ZD<-Z%*%D#
+  X<-matrix(runif(n=diploid.size, min=5, max=5), ncol=1)#
+  one<-array(1,c(diploid.size,1))#
+  des.X<-cbind(one,X)#
+  tdes.X.des.X<-t(des.X)%*%des.X#
+#
+  Ze<-matrix(rmvnorm(n=1,mean=20+4*X,sigma=40*diag(1,c(diploid.size, diploid.size))),ncol=1)#
+  Ye<-(1-rho)*Ze#
+#
+  for(i in 2:iterations){#
+#
+    if(i%%500==0)print(i)#
+    alpha<-chain[i-1,1] #need to check#
+    Va<-VaF(alpha,V=V)#
+    ZVatZ.inv<-pseudoinverse(Z%*%Va%*%t(Z))#
+#
+    Y <- Yg+Ye#
+#
+    #Gibb starts#
+    sigma.sq.shape <- a + diploid.size/2#
+    sigma.sq.scale <- b + 0.5*t(Yg-ZD%*%mu)%*%ZVatZ.inv%*%(Yg-ZD%*%mu)#
+    sigma.sq <- rinvgamma(1,shape=sigma.sq.shape, scale = sigma.sq.scale)#
+#
+    nu.sq.shape<-c + diploid.size/2#
+    nu.sq.scale<-d + 0.5*t(Y-des.X%*%beta-Yg)%*%(Y-des.X%*%beta-Yg)#
+    nu.sq<-rinvgamma(1,shape=nu.sq.shape,scale=nu.sq.scale)#
+#
+    V.yg<-pseudoinverse(ZVatZ.inv/sigma.sq  + diag(1,c(diploid.size,diploid.size))/nu.sq)#
+    V.yg.stuff<-V.yg%*%((Y-des.X%*%beta)/nu.sq  + ZVatZ.inv%*%ZD%*%mu/sigma.sq)#
+    Yg<-matrix(rmvnorm(n=1,mean=V.yg.stuff,sigma=V.yg),ncol=1)#
+#
+    mu0<-array(0,c(k,1))#
+    V.mu <- pseudoinverse( t(ZD)%*%ZVatZ.inv%*%ZD/sigma.sq + diag(1,c(k,k))/w.sq )#
+    V.mu.stuff<-V.mu%*%(  t(ZD)%*%ZVatZ.inv%*%Yg /sigma.sq + mu0/w.sq  )#
+    mu<-matrix(rmvnorm(1,mean=V.mu.stuff,sigma=V.mu),ncol=1)#
+#
+    u.sq<-100#
+    V.beta<-pseudoinverse(tdes.X.des.X/nu.sq + diag(1,dim(tdes.X.des.X))/u.sq )#
+    beta0<-array(0,c(r+1,1))#
+    V.beta.stuff<-V.beta%*%( t(des.X)%*%(Y-Yg) /nu.sq + beta0/u.sq )#
+    beta<-matrix(rmvnorm(n=1,mean=V.beta.stuff, sigma=V.beta), ncol=1)#
+#
+    chain[i,2:length(startvalue)]<-c(beta, sigma.sq,nu.sq,mu)#
+    #Gibb ends#
+#
+    #mh starts#
+    alpha.pps<-alpha.proposal(chain[i-1,1]) #slower#
+    proposal<-c(alpha.pps, chain[i,2:length(startvalue)])#
+#
+    likelihood(proposal,Yg=Yg,Ye=Ye,r=r,k=k,rho=rho,tree=tree)#
+    model.params<-proposal#
+    probab=exp(posterior(proposal,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree) - posterior(chain[i-1,],Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree))#
+      if(runif(1)<probab){#
+        chain[i,]=c(alpha.pps, chain[i,2:length(startvalue)])#
+        }else{#
+          chain[i,]=c(chain[i-1,1], chain[i,2:length(startvalue)] )#
+        }#
+    #mh ends#
+      }#end for loop#
+  return(chain)#
+  }#
+#
+#alpha            b0            b1        sig.sq         nu.sq           mu1           mu2       mu3#
+# 0.391505446   0.394397955  -8.062240686   0.004365570   0.002004884 -12.779226547  -5.700671144  -10.547468962#
+#
+startvalue= c(rexp(1), rnorm(r+1), rexp(1), rexp(1), rnorm(k) )#
+#
+chain = run_metropolis_MCMC_within_Gibbs(startvalue=startvalue,iterations=50000,Yg=Yg,Ye=Ye,r=r,k=k, rho=rho,tree=tree, a=a,b=b,c=c,d=d)#
+burnIn =10000#
+acceptance = 1- mean(duplicated(chain[-(1:burnIn),] ))#
+print(acceptance)#
+#
+hist(chain[-(1:brunIn),1],nclass=30, main="Posterior of alpha", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1]))#
+abline(v=alpha,col=red)#
+#
+hist(chain[-(1:brunIn),1+1+r],nclass=30, main="Posterior of beta1", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1+1+r]))#
+abline(v=beta[2],col="red")#
+#
+hist(chain[-(1:brunIn),1+1+r+1],nclass=30, main="Posterior of sigma.sq", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1+1+r+1]))#
+abline(v=sigma.sq,col="red")#
+#
+hist(chain[-(1:brunIn),1+1+r+1+1],nclass=30, main="Posterior of nu.sq", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1+1+r+1+1]))#
+abline(v=nu.sq,col="red")#
+plot(chain[-(1:burnIn),1],type="l",xlab="True value of red line", main="alpha")#
+abline(h=alpha, col="red")#
+#
+plot(chain[-(1:burnIn),1+1+r],type="l",xlab="True value of red line", main="beta1")#
+abline(h=beta[2], col="red")#
+#
+plot(chain[-(1:burnIn),1+1+r+1],type="l",xlab="True value of red line", main="sigma.sq")#
+abline(h=sigma.sq, col="red")#
+#
+plot(chain[-(1:burnIn),1+1+r+1+1],type="l",xlab="True value of red line", main="nu.sq")#
+abline(h=nu.sq, col="red")
+par(mfrow=c(2,4))#
+hist(chain[-(1:brunIn),1],nclass=30, main="Posterior of alpha", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1]))#
+abline(v=alpha,col=red)#
+#
+hist(chain[-(1:burnIn),1+1+r],nclass=30, main="Posterior of beta1", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1+1+r]))#
+abline(v=beta[2],col="red")#
+#
+hist(chain[-(1:burnIn),1+1+r+1],nclass=30, main="Posterior of sigma.sq", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1+1+r+1]))#
+abline(v=sigma.sq,col="red")#
+#
+hist(chain[-(1:burnIn),1+1+r+1+1],nclass=30, main="Posterior of nu.sq", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1+1+r+1+1]))#
+abline(v=nu.sq,col="red")#
+plot(chain[-(1:burnIn),1],type="l",xlab="True value of red line", main="alpha")#
+abline(h=alpha, col="red")#
+#
+plot(chain[-(1:burnIn),1+1+r],type="l",xlab="True value of red line", main="beta1")#
+abline(h=beta[2], col="red")#
+#
+plot(chain[-(1:burnIn),1+1+r+1],type="l",xlab="True value of red line", main="sigma.sq")#
+abline(h=sigma.sq, col="red")#
+#
+plot(chain[-(1:burnIn),1+1+r+1+1],type="l",xlab="True value of red line", main="nu.sq")#
+abline(h=nu.sq, col="red")
+hist(chain[-(1:brunIn),1],nclass=30, main="Posterior of alpha", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1]))#
+abline(v=alpha,col=red)
+par(mfrow=c(2,4))#
+hist(chain[-(1:burnIn),1],nclass=30, main="Posterior of alpha", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1]))#
+abline(v=alpha,col="red")#
+#
+hist(chain[-(1:burnIn),1+1+r],nclass=30, main="Posterior of beta1", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1+1+r]))#
+abline(v=beta[2],col="red")#
+#
+hist(chain[-(1:burnIn),1+1+r+1],nclass=30, main="Posterior of sigma.sq", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1+1+r+1]))#
+abline(v=sigma.sq,col="red")#
+#
+hist(chain[-(1:burnIn),1+1+r+1+1],nclass=30, main="Posterior of nu.sq", xlab= "True value = red line"  )#
+abline(v= mean(chain[-(1:burnIn),1+1+r+1+1]))#
+abline(v=nu.sq,col="red")#
+plot(chain[-(1:burnIn),1],type="l",xlab="True value of red line", main="alpha")#
+abline(h=alpha, col="red")#
+#
+plot(chain[-(1:burnIn),1+1+r],type="l",xlab="True value of red line", main="beta1")#
+abline(h=beta[2], col="red")#
+#
+plot(chain[-(1:burnIn),1+1+r+1],type="l",xlab="True value of red line", main="sigma.sq")#
+abline(h=sigma.sq, col="red")#
+#
+plot(chain[-(1:burnIn),1+1+r+1+1],type="l",xlab="True value of red line", main="nu.sq")#
+abline(h=nu.sq, col="red")
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("Model","BM","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+rownames(modeltable)<-modelnames#
+sdetype <- c("Linear","Homo","Auto","Addtive","yt Normal","Ref.")#
+colnames(modeltable)<-sdetype#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("Model","BM","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Homo","Auto","Addtive","yt Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modeltable)<-modelnames#
+colnames(modeltable)<-sdetype#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("Model","BM","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Homo","Auto","Addtive","yt Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+print(modelproptable)
+modelprobtable[1,]<-modelnames
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("Model","BM","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Homo","Auto","Addtive","yt Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+modelprobtable[1,]<-modelnames#
+#
+colnames(modelproptable)<-sdetype#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("Model","BM","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Homo","Auto","Addtive","yt Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+modelproptable[1,]<-modelnames#
+#
+colnames(modelproptable)<-sdetype#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("Model","BM","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Homo","Auto","Addtive","yt Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+modelproptable[1,]<-sdetype #
+#
+colnames(modelproptable)<-sdetype#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("Model","BM","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Homo","Auto","Addtive","yt Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Homo","Auto","Addtive","yt Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+print(modelproptable)
+modelproptable[which(modelnames=="OUOUCIR"),
+which(sdetype=="Linear")]<- "X"
+modelproptable
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Homo","Auto","Addtive","yt Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="Linear")]<- "Y"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","Homo","Auto","Addtive","yt Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytHomo","ytAuto","ytAddtive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAddtive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAddtive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAddtive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[which(modelnames==c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+print(modelproptable)
+modelnames==c("BM","OU")
+modelnames%in%c("BM","OU")
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAddtive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[which(modelnames%*%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+print(modelproptable)
+modelnames%in%c("BM","OU")
+which(modelnames%in%c("BM","OU"))
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAddtive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAddtive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytHomo")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAddtive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytHomo")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[,which(sdetype=="ytAdditive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAdditive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytHomo")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[,which(sdetype=="ytAdditive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAdditive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytHomo")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[,which(sdetype=="ytAdditive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+modelproptable[,which(sdetype=="ytNormal")]<- "Y"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAdditive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytHomo")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[,which(sdetype=="ytAdditive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+modelproptable[,which(sdetype=="ytNormal")]<- "Y"#
+modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="ytNormal")]<- "N"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAdditive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytHomo")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[,which(sdetype=="ytAdditive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+modelproptable[,which(sdetype=="ytNormal")]<- "Y"#
+modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="ytNormal")]<- "N"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAdditive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytHomo")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[,which(sdetype=="ytAdditive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+modelproptable[,which(sdetype=="ytNormal")]<- "Y"#
+modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="ytNormal")]<- "N"#
+modelproptable[1,]<-"\y_t \theta_t \sigma_t"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAdditive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytHomo")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[,which(sdetype=="ytAdditive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+modelproptable[,which(sdetype=="ytNormal")]<- "Y"#
+modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="ytNormal")]<- "N"#
+modelproptable[1,]<-"y_t theta_t sigma_t"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAdditive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytHomo")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[,which(sdetype=="ytAdditive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+modelproptable[,which(sdetype=="ytNormal")]<- "Y"#
+modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="ytNormal")]<- "N"#
+modelproptable[1,]<-"yt tta_t sga_t"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAdditive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytHomo")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[,which(sdetype=="ytAdditive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+modelproptable[,which(sdetype=="ytNormal")]<- "Y"#
+modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="ytNormal")]<- "N"#
+modelproptable[1,]<-"yttta_tsga_t"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("ytLinear","ytAuto", "ytHomo","ytAdditive","ytNormal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="ytLinear")]<- "Y"#
+modelproptable[,which(sdetype=="ytHomo")]<- "Y"#
+modelproptable[,which(sdetype=="ytAuto")]<- "N"#
+modelproptable[,which(sdetype=="ytAdditive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="ytAuto")]<- "Y"#
+modelproptable[,which(sdetype=="ytNormal")]<- "Y"#
+modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="ytNormal")]<- "N"#
+modelproptable[1,]<-"yts"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Homo","Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="Linear")]<- "Y"#
+modelproptable[,which(sdetype=="Homo")]<- "Y"#
+modelproptable[,which(sdetype=="Auto")]<- "N"#
+modelproptable[,which(sdetype=="Additive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+modelproptable[,which(sdetype=="Normal")]<- "Y"#
+modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"yts"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Homo","Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"yts"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Homo","Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="Linear")]<- "Y"#
+modelproptable[,which(sdetype=="Homo")]<- "Y"#
+modelproptable[,which(sdetype=="Auto")]<- "N"#
+modelproptable[,which(sdetype=="Additive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+modelproptable[,which(sdetype=="Normal")]<- "Y"#
+modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"yts"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Homo","Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="Linear")]<- "Y"#
+modelproptable[,which(sdetype=="Homo")]<- "Y"#
+modelproptable[,which(sdetype=="Auto")]<- "N"#
+modelproptable[,which(sdetype=="Additive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+modelproptable[,which(sdetype=="Normal")]<- "Y"#
+modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"yt"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Homo","Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+modelproptable[,which(sdetype=="Linear")]<- "Y"#
+modelproptable[,which(sdetype=="Homo")]<- "Y"#
+modelproptable[,which(sdetype=="Auto")]<- "N"#
+modelproptable[,which(sdetype=="Additive")]<- "Y"#
+modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+modelproptable[,which(sdetype=="Normal")]<- "Y"#
+modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Homo","Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Homo","Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+modelproptable[2:11,1]<-c(#
+ "(y,-,-)",#
+ "(y,-,-)",#
+ "(y,-,-)",#
+ "(y,-,-)",#
+ "(y,-,-)",#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")#
+print(modelproptable)
+c(#
+ "(y,-,-)",#
+ "(y,-,-)",#
+ "(y,-,-)",#
+ "(y,-,-)",#
+ "(y,-,-)",#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")
+dim(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","BM","BMv","OU","OUm","OUmva","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Homo","Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+modelproptable[2:12,1]<-c(#
+ "(y,-,-)",#
+ "(y,-,-)",#
+ "(y,-,-)",#
+ "(y,-,-)",#
+ "(y,-,-)",#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Homo","Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+modelproptable[2:12,which(sdetype)=="Linear"]<-c(#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")#
+ modelproptable[2:12,which(sdetype)=="Auto"]<-c(#
+  "(n,y,-)",#
+  "(n,y,-)",#
+  "(n,y,y)",#
+  "(n,y,y)",#
+  "(n,y,n)",#
+  "(n,y,n)")#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Homo","Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+modelproptable[2:6,which(sdetype)=="Linear"]<-c(#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")#
+ modelproptable[2:6,which(sdetype)=="Auto"]<-c(#
+  "(n,y,-)",#
+  "(n,y,-)",#
+  "(n,y,y)",#
+  "(n,y,y)",#
+  "(n,y,n)",#
+  "(n,y,n)")#
+print(modelproptable)
+odelproptable[2:6,which(sdetype)=="Linear"]
+modelproptable[2:6,which(sdetype)=="Linear"]
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Homo","Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+modelproptable[2:6,which(sdetype=="Linear")]<-c(#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")#
+ modelproptable[2:6,which(sdetype=="Auto")]<-c(#
+  "(n,y,-)",#
+  "(n,y,-)",#
+  "(n,y,y)",#
+  "(n,y,y)",#
+  "(n,y,n)",#
+  "(n,y,n)")#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Homo","Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+modelproptable[2:7,which(sdetype=="Linear")]<-c(#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")#
+ modelproptable[2:7,which(sdetype=="Auto")]<-c(#
+  "(n,y,-)",#
+  "(n,y,-)",#
+  "(n,y,y)",#
+  "(n,y,y)",#
+  "(n,y,n)",#
+  "(n,y,n)")#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Auto", "Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+modelproptable[2:7,which(sdetype=="Linear")]<-c(#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")#
+ modelproptable[2:7,which(sdetype=="Auto")]<-c(#
+  "(n,y,-)",#
+  "(n,y,-)",#
+  "(n,y,y)",#
+  "(n,y,y)",#
+  "(n,y,n)",#
+  "(n,y,n)")#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Autonomous", "Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+modelproptable[2:7,which(sdetype=="Linear")]<-c(#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")#
+ modelproptable[2:7,which(sdetype=="Auto")]<-c(#
+  "(n,y,-)",#
+  "(n,y,-)",#
+  "(n,y,y)",#
+  "(n,y,y)",#
+  "(n,y,n)",#
+  "(n,y,n)")#
+ modelproptable[2:7,which(sdetype=="Additive")]<-c(#
+   "(y,y,-)",#
+   "(y,y,-)",#
+   "(y,y,y)",#
+   "(y,y,y)",#
+   "(y,y,n)",#
+   "(y,y,n)")#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Autonomous", "Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+modelproptable[2:7,which(sdetype=="Linear")]<-c(#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")#
+ modelproptable[2:7,which(sdetype=="Autonomous")]<-c(#
+  "(n,y,-)",#
+  "(n,y,-)",#
+  "(n,y,y)",#
+  "(n,y,y)",#
+  "(n,y,n)",#
+  "(n,y,n)")#
+ modelproptable[2:7,which(sdetype=="Additive")]<-c(#
+   "(y,y,-)",#
+   "(y,y,-)",#
+   "(y,y,y)",#
+   "(y,y,y)",#
+   "(y,y,n)",#
+   "(y,y,n)")#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Autonomous", "Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+modelproptable[2:7,which(sdetype=="Linear")]<-c(#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")#
+ modelproptable[2:7,which(sdetype=="Autonomous")]<-c(#
+  "(n,y,-)",#
+  "(n,y,-)",#
+  "(n,y,y)",#
+  "(n,y,y)",#
+  "(n,y,n)",#
+  "(n,y,n)")#
+ modelproptable[2:7,which(sdetype=="Additive")]<-c(#
+   "(y,y,-)",#
+   "(y,y,-)",#
+   "(y,y,y)",#
+   "(y,y,y)",#
+   "(y,y,n)",#
+   "(y,y,n)")#
+ modelproptable[2:7,which(sdetype=="Normal")]<-c(#
+     "(y,y,-)",#
+     "(y,y,-)",#
+     "(n,y,y)",#
+     "(n,y,y)",#
+     "(n,y,n)",#
+     "(n,y,n)")#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Autonomous", "Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+modelproptable[2:7,which(sdetype=="Linear")]<-c(#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")#
+ modelproptable[2:7,which(sdetype=="Autonomous")]<-c(#
+  "(n,y,-)",#
+  "(n,y,-)",#
+  "(n,y,y)",#
+  "(n,y,y)",#
+  "(n,y,n)",#
+  "(n,y,n)")#
+ modelproptable[2:7,which(sdetype=="Additive")]<-c(#
+   "(y,y,-)",#
+   "(y,y,-)",#
+   "(y,y,y)",#
+   "(y,y,y)",#
+   "(y,y,n)",#
+   "(y,y,n)")#
+modelproptable[2:7,which(sdetype=="Normal")]<-c(#
+     "(y,y,-)",#
+     "(y,y,-)",#
+     "(n,y,y)",#
+     "(n,y,y)",#
+     "(n,y,n)",#
+     "(n,y,n)")#
+modelproptable[2:7,which(sdetype=="Ref.")]<-c(#
+     "Hansen08",#
+     "Jhwueng14",#
+     "Jhwueng16",#
+     "Jhwueng16",#
+     "",#
+     "")#
+print(modelproptable)
+rm(list=ls())#
+library(xtable)#
+modelnames<-c("","OUBM","OUOU","OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")#
+sdetype <- c("Linear","Autonomous", "Additive","Normal","Ref.")#
+modelproptable<-array(0,c(length(modelnames),length(sdetype)))#
+rownames(modelproptable)<-modelnames#
+colnames(modelproptable)<-sdetype#
+# modelproptable[,which(sdetype=="Linear")]<- "Y"#
+# modelproptable[,which(sdetype=="Homo")]<- "Y"#
+# modelproptable[,which(sdetype=="Auto")]<- "N"#
+# modelproptable[,which(sdetype=="Additive")]<- "Y"#
+# modelproptable[which(modelnames%in%c("BM","OU")),which(sdetype=="Auto")]<- "Y"#
+# modelproptable[,which(sdetype=="Normal")]<- "Y"#
+# modelproptable[which(modelnames%in%c("OUBMBM","OUOUBM","OUBMCIR","OUOUCIR")),which(sdetype=="Normal")]<- "N"#
+modelproptable[1,]<-"(y,t,s)"#
+modelproptable[2:7,which(sdetype=="Linear")]<-c(#
+ "(y,y,-)",#
+ "(y,y,-)",#
+ "(y,y,y)",#
+ "(y,y,y)",#
+ "(y,y,n)",#
+ "(y,y,n)")#
+ modelproptable[2:7,which(sdetype=="Autonomous")]<-c(#
+  "(n,y,-)",#
+  "(n,y,-)",#
+  "(n,y,y)",#
+  "(n,y,y)",#
+  "(n,y,n)",#
+  "(n,y,n)")#
+ modelproptable[2:7,which(sdetype=="Additive")]<-c(#
+   "(y,y,-)",#
+   "(y,y,-)",#
+   "(y,y,y)",#
+   "(y,y,y)",#
+   "(y,y,n)",#
+   "(y,y,n)")#
+modelproptable[2:7,which(sdetype=="Normal")]<-c(#
+     "(y,y,-)",#
+     "(y,y,-)",#
+     "(n,y,y)",#
+     "(n,y,y)",#
+     "(n,y,n)",#
+     "(n,y,n)")#
+modelproptable[2:7,which(sdetype=="Ref.")]<-c(#
+     "Hansen08",#
+     "Jhwueng14",#
+     "Jhwueng16",#
+     "Jhwueng16",#
+     "",#
+     "")#
+print(modelproptable)#
+xtable(modelproptable)
+rm(list=ls())#
+#dynamic linear models#
+#
+# Logistic growth function#
+logistG <- function(r, p, k, t){#
+  k * p * exp(r*t) / (k + p * (exp(r*t) - 1))#
+}#
+#
+k <- 100#
+p0 <- 0.1*k#
+r <- 0.2#
+deltaT <- 0.1
+set.seed(12345)#
+#
+obsVariance <- 25#
+nObs = 250#
+nu <- rnorm(nObs, mean=0, sd=sqrt(obsVariance))#
+pop <- c(p0, logistG(r, p0, k, (1:(nObs-1))*deltaT)) + nu#
+#
+Estimate <- data.frame(Rate=rep(NA, nObs),#
+                       Population=rep(NA,nObs))
+Estimate
+library(numDeriv)
+a <- function(x, k, deltaT){#
+  c(r=x[1],#
+    logistG(r=x[1], p=x[2], k, deltaT))#
+}#
+G <- t(c(0, 1))#
+#
+# Evolution error#
+Q <- diag(c(0, 0))#
+# Observation error#
+R <-  obsVariance#
+# Prior#
+x <- c(r, p0)#
+Sigma <-  diag(c(144, 25))
+for(i in 1:nObs){#
+  # Observation#
+  xobs <- c(0, pop[i])#
+  y <- G %*% xobs#
+  # Filter#
+  SigTermInv <- solve(G %*% Sigma %*% t(G) + R)#
+  xf <- x + Sigma %*% t(G) %*%  SigTermInv %*% (y - G %*% x)#
+  Sigma <- Sigma - Sigma %*% t(G) %*% SigTermInv %*% G %*% Sigma#
+#
+  A <- jacobian(a, x=x, k=k, deltaT=deltaT)#
+  K <- A %*% Sigma %*% t(G) %*% solve(G %*% Sigma %*% t(G) + R)#
+  Estimate[i,] <- x#
+#
+  # Predict#
+  x <- a(x=xf, k=k, deltaT=deltaT) + K %*% (y - G %*% xf)#
+  Sigma <- A %*% Sigma %*% t(A) - K %*% G %*% Sigma %*% t(A) + Q#
+}
+# Plot output#
+op <- par(mfrow=c(2,1))#
+time <- c(1:nObs)*deltaT#
+plot(y=pop, x=time, t='l', main="Population growth",#
+     xlab="Time", ylab="Population")
+curve(logistG(r, p0, k, x),  from=0, to=max(time), col=2, add=TRUE, lwd=1)
+)
+lines(y=Estimate$Population, x=time, col="orange", lwd=2)
+legend("bottomright",#
+       legend=c("Data","Actual", "Estimate"),#
+       bty="n",#
+       col=c("black", "red", "orange"),#
+       lty=1, lwd=2)
+abline(h=r, col=adjustcolor("red", alpha=0.5), lwd=2)
+legend("topright",
+legend=c("Actual", "Estimate"),
+bty="n",
+("
+lty=1, lwd=2)
+op <- par(mfrow=c(2,1))#
+time <- c(1:nObs)*deltaT#
+plot(y=pop, x=time, t='l', main="Population growth",#
+     xlab="Time", ylab="Population")#
+curve(logistG(r, p0, k, x),  from=0, to=max(time), col=2, add=TRUE, lwd=1)#
+lines(y=Estimate$Population, x=time, col="orange", lwd=2)#
+legend("bottomright",legend=c("Data","Actual", "Estimate"),bty="n",col=c("black", "red", "orange"),lty=1, lwd=2)#
+abline(h=r, col=adjustcolor("red", alpha=0.5), lwd=2)#
+legend("topright",legend=c("Actual", "Estimate"),bty="n",col=c("red", "orange"),lty=1, lwd=2)#
+par(op)
+# Plot output#
+op <- par(mfrow=c(2,1))#
+time <- c(1:nObs)*deltaT#
+plot(y=pop, x=time, t='l', main="Population growth",#
+     xlab="Time", ylab="Population")#
+curve(logistG(r, p0, k, x),  from=0, to=max(time), col=2, add=TRUE, lwd=1)#
+lines(y=Estimate$Population, x=time, col="orange", lwd=2)#
+legend("bottomright",legend=c("Data","Actual", "Estimate"),bty="n",col=c("black", "red", "orange"),lty=1, lwd=2)#
+abline(h=r, col=adjustcolor("red", alpha=0.5), lwd=2)
+legend("topleft",legend=c("Actual", "Estimate"),bty="n",col=c("red", "orange"),lty=1, lwd=2)
+rm(list=ls())#
+#dynamic linear models#
+#
+# Logistic growth function#
+logistG <- function(r, p, k, t){#
+  k * p * exp(r*t) / (k + p * (exp(r*t) - 1))#
+}#
+#
+k <- 100#
+p0 <- 0.1*k#
+r <- 0.2#
+deltaT <- 0.1#
+#
+# Let's create some sample data:#
+set.seed(12345)#
+#
+obsVariance <- 25#
+nObs = 250#
+nu <- rnorm(nObs, mean=0, sd=sqrt(obsVariance))#
+pop <- c(p0, logistG(r, p0, k, (1:(nObs-1))*deltaT)) + nu#
+#
+Estimate <- data.frame(Rate=rep(NA, nObs),#
+                       Population=rep(NA,nObs))#
+#
+library(numDeriv)#
+a <- function(x, k, deltaT){#
+  c(r=x[1],#
+    logistG(r=x[1], p=x[2], k, deltaT))#
+}#
+G <- t(c(0, 1))#
+#
+# Evolution error#
+Q <- diag(c(0, 0))#
+# Observation error#
+R <-  obsVariance#
+# Prior#
+x <- c(r, p0)#
+Sigma <-  diag(c(144, 25))#
+#
+for(i in 1:nObs){#
+  # Observation#
+  xobs <- c(0, pop[i])#
+  y <- G %*% xobs#
+  # Filter#
+  SigTermInv <- solve(G %*% Sigma %*% t(G) + R)#
+  xf <- x + Sigma %*% t(G) %*%  SigTermInv %*% (y - G %*% x)#
+  Sigma <- Sigma - Sigma %*% t(G) %*% SigTermInv %*% G %*% Sigma#
+#
+  A <- jacobian(a, x=x, k=k, deltaT=deltaT)#
+  K <- A %*% Sigma %*% t(G) %*% solve(G %*% Sigma %*% t(G) + R)#
+  Estimate[i,] <- x#
+#
+  # Predict#
+  x <- a(x=xf, k=k, deltaT=deltaT) + K %*% (y - G %*% xf)#
+  Sigma <- A %*% Sigma %*% t(A) - K %*% G %*% Sigma %*% t(A) + Q#
+}#
+#
+# Plot output#
+op <- par(mfrow=c(2,1))#
+time <- c(1:nObs)*deltaT#
+plot(y=pop, x=time, t='l', main="Population growth",#
+     xlab="Time", ylab="Population")#
+curve(logistG(r, p0, k, x),  from=0, to=max(time), col=2, add=TRUE, lwd=1)#
+lines(y=Estimate$Population, x=time, col="orange", lwd=2)#
+legend("bottomright",legend=c("Data","Actual", "Estimate"),bty="n",col=c("black", "red", "orange"),lty=1, lwd=2)#
+abline(h=r, col=adjustcolor("red", alpha=0.5), lwd=2)#
+#
+#legend("topleft",legend=c("Actual", "Estimate"),bty="n",col=c("red", "orange"),lty=1, lwd=2)#
+#par(op)
+rm(list=ls())#
+#dynamic linear models#
+#
+# Logistic growth function#
+logistG <- function(r, p, k, t){#
+  k * p * exp(r*t) / (k + p * (exp(r*t) - 1))#
+}#
+#
+k <- 100#
+p0 <- 0.1*k#
+r <- 0.2#
+deltaT <- 0.1#
+#
+# Let's create some sample data:#
+set.seed(12345)#
+#
+obsVariance <- 25#
+nObs = 250#
+nu <- rnorm(nObs, mean=0, sd=sqrt(obsVariance))#
+pop <- c(p0, logistG(r, p0, k, (1:(nObs-1))*deltaT)) + nu#
+#
+Estimate <- data.frame(Rate=rep(NA, nObs),#
+                       Population=rep(NA,nObs))#
+#
+library(numDeriv)#
+a <- function(x, k, deltaT){#
+  c(r=x[1],#
+    logistG(r=x[1], p=x[2], k, deltaT))#
+}#
+G <- t(c(0, 1))#
+#
+# Evolution error#
+Q <- diag(c(0, 0))#
+# Observation error#
+R <-  obsVariance#
+# Prior#
+x <- c(r, p0)#
+Sigma <-  diag(c(144, 25))#
+#
+for(i in 1:nObs){#
+  # Observation#
+  xobs <- c(0, pop[i])#
+  y <- G %*% xobs#
+  # Filter#
+  SigTermInv <- solve(G %*% Sigma %*% t(G) + R)#
+  xf <- x + Sigma %*% t(G) %*%  SigTermInv %*% (y - G %*% x)#
+  Sigma <- Sigma - Sigma %*% t(G) %*% SigTermInv %*% G %*% Sigma#
+#
+  A <- jacobian(a, x=x, k=k, deltaT=deltaT)#
+  K <- A %*% Sigma %*% t(G) %*% solve(G %*% Sigma %*% t(G) + R)#
+  Estimate[i,] <- x#
+#
+  # Predict#
+  x <- a(x=xf, k=k, deltaT=deltaT) + K %*% (y - G %*% xf)#
+  Sigma <- A %*% Sigma %*% t(A) - K %*% G %*% Sigma %*% t(A) + Q#
+}#
+#
+# Plot output#
+op <- par(mfrow=c(2,1))#
+time <- c(1:nObs)*deltaT#
+plot(y=pop, x=time, t='l', main="Population growth",#
+     xlab="Time", ylab="Population")#
+curve(logistG(r, p0, k, x),  from=0, to=max(time), col=2, add=TRUE, lwd=1)#
+lines(y=Estimate$Population, x=time, col="orange", lwd=2)#
+legend("bottomright",legend=c("Data","Actual", "Estimate"),bty="n",col=c("black", "red", "orange"),lty=1, lwd=2)#
+plot(y=Estimate$Rate, x=time, t='l', main="Estimated growth rate", #
+     xlab="Time", ylab="Rate", col="orange", lwd=2)#
+abline(h=r, col=adjustcolor("red", alpha=0.5), lwd=2)#
+#
+legend("topleft",legend=c("Actual", "Estimate"),bty="n",col=c("red", "orange"),lty=1, lwd=2)#
+par(op)
+rm(list=ls())#
+#dynamic linear models#
+#
+# Logistic growth function#
+logistG <- function(r, p, k, t){#
+  k * p * exp(r*t) / (k + p * (exp(r*t) - 1))#
+}#
+#
+k <- 100#
+p0 <- 0.1*k#
+r <- 0.2#
+deltaT <- 0.1#
+#
+# Let's create some sample data:#
+set.seed(12345)#
+#
+obsVariance <- 25#
+nObs = 250#
+nu <- rnorm(nObs, mean=0, sd=sqrt(obsVariance))#
+pop <- c(p0, logistG(r, p0, k, (1:(nObs-1))*deltaT)) + nu#
+#
+Estimate <- data.frame(Rate=rep(NA, nObs),#
+                       Population=rep(NA,nObs))#
+#
+library(numDeriv)#
+a <- function(x, k, deltaT){#
+  c(r=x[1],#
+    logistG(r=x[1], p=x[2], k, deltaT))#
+}#
+G <- t(c(0, 1))#
+#
+# Evolution error#
+Q <- diag(c(0, 0))#
+# Observation error#
+R <-  obsVariance#
+# Prior#
+x <- c(r, p0)#
+Sigma <-  diag(c(144, 25))#
+#
+for(i in 1:nObs){#
+  # Observation#
+  xobs <- c(0, pop[i])#
+  y <- G %*% xobs#
+  # Filter#
+  SigTermInv <- solve(G %*% Sigma %*% t(G) + R)#
+  xf <- x + Sigma %*% t(G) %*%  SigTermInv %*% (y - G %*% x)#
+  Sigma <- Sigma - Sigma %*% t(G) %*% SigTermInv %*% G %*% Sigma#
+#
+  A <- jacobian(a, x=x, k=k, deltaT=deltaT)#
+  K <- A %*% Sigma %*% t(G) %*% solve(G %*% Sigma %*% t(G) + R)#
+  Estimate[i,] <- x#
+#
+  # Predict#
+  x <- a(x=xf, k=k, deltaT=deltaT) + K %*% (y - G %*% xf)#
+  Sigma <- A %*% Sigma %*% t(A) - K %*% G %*% Sigma %*% t(A) + Q#
+}#
+#
+# Plot output#
+op <- par(mfrow=c(2,1))#
+time <- c(1:nObs)*deltaT#
+plot(y=pop, x=time, t='l', main="Population growth",#
+     xlab="Time", ylab="Population")#
+curve(logistG(r, p0, k, x),  from=0, to=max(time), col=2, add=TRUE, lwd=1)#
+lines(y=Estimate$Population, x=time, col="orange", lwd=2)#
+legend("bottomright",legend=c("Data","Actual", "Estimate"),bty="n",col=c("black", "red", "orange"),lty=1, lwd=2)#
+plot(y=Estimate$Rate, x=time, t='l', main="Estimated growth rate", #
+     xlab="Time", ylab="Rate", col="orange", lwd=2)#
+abline(h=r, col=adjustcolor("red", alpha=0.5), lwd=2)#
+#
+legend("topright",legend=c("Actual", "Estimate"),bty="n",col=c("red", "orange"),lty=1, lwd=2)#
+par(op)
+rm(list=ls(())#
+library(TreeSim)
+rm(list=ls())
+install.packages("TreeSim")
+library(TreeSim)
+tree<-sim.bd.taxa.age(n=n,numsim=numsim,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[1]
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[1]
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-10#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[1]
+plot(tree)
+tree
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]
+plot(tree)
+tree<-reorder(tree,"postorder")
+nodellabels()
+nodelabels()
+tiplabels
+tiplabels()
+tree$edge
+ls()
+ls(tree)
+tree$edge.length
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-10#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+root<-0#
+true.sigma<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[2]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+  nodestates[des[index]]<-rnorm(anc[index],true.sigma*treelength[index])#
+  }#
+print(nodestates)
+length(nodestates)
+index
+nodestates[des[index]]<-rnorm(anc[index],true.sigma*treelength[index])
+true.sigma * treelength[index]
+anc[index]
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-10#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+root<-0#
+true.sigma<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[2]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+  nodestates[des[index]]<-rnorm( nodestates[anc[index]],true.sigma*treelength[index])#
+  }#
+print(nodestates)
+nodestates[anc[index]]
+true.sigma*treelength[index]
+rnorm( nodestates[anc[index]],true.sigma*treelength[index])
+nodestates[anc[index]]
+index
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-10#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+root<-0#
+true.sigma<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[2]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1#
+  print(index)#
+  nodestates[des[index]]<-rnorm( nodestates[anc[index]],true.sigma*treelength[index])#
+  }#
+print(nodestates)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-10#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+root<-0#
+true.sigma<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[2]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:){#
+  print(index)#
+  nodestates[des[index]]<-rnorm( nodestates[anc[index]],true.sigma*treelength[index])#
+  }#
+print(nodestates)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-10#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+root<-0#
+true.sigma<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[2]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+  print(index)#
+  nodestates[des[index]]<-rnorm( nodestates[anc[index]],true.sigma*treelength[index])#
+  }#
+print(nodestates)
+true.sigma
+rnorm( nodestates[anc[index]],true.sigma*treelength[index])
+nodestates[anc[index]]
+?rnorm
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-10#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[2]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+  print(index)#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+print(nodestates)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-10#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+  print(index)#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+print(nodestates)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-3#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+  print(index)#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+print(nodestates)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-3#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+  print(index)#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-3#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-3#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+plot(tree)#
+nodelables()#
+tiplables()#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)
+nodelables()
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+n<-3#
+numbsim<-1#
+lambda<-2.0#
+mu<-0.5#
+frac<-0.6#
+age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)
+install.packages("invgamma")
+library(invgamma)
+?invgamma
+rinvgamma(1,shape=1,rate=1)
+library(EasyABC)
+#rm(list=ls())#
+install.packages(EasyABC)#
+library(EasyABC)#
+#my_prior=list(c("unif",0,1),c("normal",1,2))#
+#my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))#
+toy_model<-function(x){#
+  c(x[1]+x[2]+rnorm(1,0,0.1),x[1]*x[2]+rnorm(1,0,0.1))#
+}#
+toy_prior = list(c("invgamma",1,1),c("normal",1,2))#
+sum_stat_obs=c(1.5,0.5)#
+set.seed(1)#
+n=10#
+p=0.5#
+ABC_rej<-ABC_rejection(model=toy_model,prior=toy_prior,nb_simul=n,summary_stat_target=sum_stat_obs,tol=p)
+#rm(list=ls())#
+install.packages("EasyABC")#
+library(EasyABC)#
+#my_prior=list(c("unif",0,1),c("normal",1,2))#
+#my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))#
+toy_model<-function(x){#
+  c(x[1]+x[2]+rnorm(1,0,0.1),x[1]*x[2]+rnorm(1,0,0.1))#
+}#
+toy_prior = list(c("invgamma",1,1),c("normal",1,2))#
+sum_stat_obs=c(1.5,0.5)#
+set.seed(1)#
+n=10#
+p=0.5#
+ABC_rej<-ABC_rejection(model=toy_model,prior=toy_prior,nb_simul=n,summary_stat_target=sum_stat_obs,tol=p)
+library(EasyABC)#
+#my_prior=list(c("unif",0,1),c("normal",1,2))#
+#my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))#
+toy_model<-function(x){#
+  c(x[1]+x[2]+rnorm(1,0,0.1),x[1]*x[2]+rnorm(1,0,0.1))#
+}#
+toy_prior = list(c("unif",0,100),c("normal",1,2))#
+sum_stat_obs=c(1.5,0.5)#
+set.seed(1)#
+n=10#
+p=0.5#
+ABC_rej<-ABC_rejection(model=toy_model,prior=toy_prior,nb_simul=n,summary_stat_target=sum_stat_obs,tol=p)
+n<-Ntip(tree)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+library(EasyABC)#
+n<-3#
+numbsim<-1;lambda<-2.0;mu<-0.5;frac<-0.6;age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+#  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)
+truetrait<-tipstates#
+summarytrait=c(mean(truetrait),sd(truetrait))#
+model<-function(sigma,root=root,tree=tree){#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigma*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]#
+  return(c(mean(simtrait),sd(simtrait)))#
+}
+sigmasqprior<- list(c("unif,0,100"))#
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,prior=sigmasqprior,ssummary_stat_target=summarytrait,n_rec=10000,root=root,tree=tree)#
+str(ABC_Marjoram_original)#
+hist(ABC_Marjoram_original$param[5000:10000],main="Posterior of sigma.sq")
+sigmasqprior<- list(c("unif",0,100))
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,prior=sigmasqprior,ssummary_stat_target=summarytrait,n_rec=10000,root=root,tree=tree)
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000,root=root,tree=tree)
+summarytrait
+root
+tree
+n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigma*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]
+treelength
+n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]
+sigmasq<-1#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]
+model<-function(sigmasq,root=root,tree=tree){#
+  #sigmasq<-1#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]#
+  return(c(mean(simtrait),sd(simtrait)))#
+}
+model(1,root=root,tree=tree)
+sigmasqprior<- list(c("unif",0,100))
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000,root=root,tree=tree)
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)
+Ntip(tree)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+library(EasyABC)#
+n<-3#
+numbsim<-1;lambda<-2.0;mu<-0.5;frac<-0.6;age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+#  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)#
+#
+truetrait<-tipstates#
+summarytrait=c(mean(truetrait),sd(truetrait))#
+model<-function(sigmasq,root=root,tree=tree){#
+  #sigmasq<-1#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]#
+  return(c(mean(simtrait),sd(simtrait)))#
+}#
+#model(1,root=root,tree=tree)#
+sigmasqprior<- list(c("unif",0,100))#
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)#
+str(ABC_Marjoram_original)#
+hist(ABC_Marjoram_original$param[5000:10000],main="Posterior of sigma.sq")
+model
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,root=root,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,tree=tree,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)
+model<-function(sigmasq,root=root,tree=tree){
+model<-function(sigmasq,root=root,tree=tree){#
+  #sigmasq<-1#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]#
+  return(c(mean(simtrait),sd(simtrait)))#
+}
+sigmasqprior<- list(c("unif",0,100))
+sigmasqprior
+ABC_mcmc(method="Marjoram",model=model,tree=tree,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)
+?ABC_mcmc
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,tree=tree,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+library(EasyABC)#
+n<-3#
+numbsim<-1;lambda<-2.0;mu<-0.5;frac<-0.6;age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+#  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)#
+#
+truetrait<-tipstates#
+summarytrait=c(mean(truetrait),sd(truetrait))#
+model<-function(sigmasq,root,tree){#
+  #sigmasq<-1#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]#
+  return(c(mean(simtrait),sd(simtrait)))#
+}#
+#model(1,root=root,tree=tree)#
+sigmasqprior<- list(c("unif",0,100))#
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,root=root,tree=tree,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)#
+str(ABC_Marjoram_original)#
+hist(ABC_Marjoram_original$param[5000:10000],main="Posterior of sigma.sq")#
+#https://theoreticalecology.wordpress.com/2012/12/02/the-easyabc-package-for-approximate-bayesian-computation-in-r/#
+# data<-rnorm(10,mean=5.3,sd=2.7)#
+# summarydata<-c(mean(data),sd(data))#
+##
+# model<-function(par){#
+#   samples<-rnorm(10,mean=par[1],sd=par[2])#
+#   return(c(mean(samples),sd(samples)))#
+# }#
+##
+# ABC_Marjoram_original<- ABC_mcmc(method="Marjoram",model=model, prior=list(c("unif",0,10),c("unif",1,5)),#
+#   summary_stat_target=summarydata, n_rec=10000#
+#                                 )#
+# str(ABC_Marjoram_original)#
+# par(mfrow=c(2,1))#
+# hist(ABC_Marjoram_original$param[5000:10000,1],main="Posterior for mean")#
+# hist(ABC_Marjoram_original$param[5000:10000,2],main="Posterior for standard deviation")#
+#rm(list=ls())#
+#install.packages("EasyABC")#
+# library(EasyABC)#
+#my_prior=list(c("unif",0,1),c("normal",1,2))#
+#my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))#
+# toy_model<-function(x){#
+#   c(x[1]+x[2]+rnorm(1,0,0.1),x[1]*x[2]+rnorm(1,0,0.1))#
+# }#
+# toy_prior = list(c("unif",0,100),c("normal",1,2))#
+# sum_stat_obs=c(1.5,0.5)#
+# set.seed(1)#
+# n=10#
+# p=0.5#
+# ABC_rej<-ABC_rejection(model=toy_model,prior=toy_prior,nb_simul=n,summary_stat_target=sum_stat_obs,tol=p)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+library(EasyABC)#
+n<-3#
+numbsim<-1;lambda<-2.0;mu<-0.5;frac<-0.6;age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+#  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)#
+#
+truetrait<-tipstates#
+summarytrait=c(mean(truetrait),sd(truetrait))#
+model<-function(sigmasq,root=root,tree=tree){#
+  #sigmasq<-1#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]#
+  return(c(mean(simtrait),sd(simtrait)))#
+}#
+#model(1,root=root,tree=tree)#
+sigmasqprior<- list(c("unif",0,100))#
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,root=root,tree=tree,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)#
+str(ABC_Marjoram_original)#
+hist(ABC_Marjoram_original$param[5000:10000],main="Posterior of sigma.sq")
+model
+data<-rnorm(10,mean=5.3,sd=2.7)#
+ summarydata<-c(mean(data),sd(data))#
+#
+ model<-function(par,hi=hi){#
+   samples<-rnorm(10,mean=par[1],sd=par[2])#
+   print(hi)#
+   return(c(mean(samples),sd(samples)))#
+ }#
+hi<-"hi"#
+ ABC_Marjoram_original<- ABC_mcmc(method="Marjoram",model=model, prior=list(c("unif",0,10),c("unif",1,5)),#
+   summary_stat_target=summarydata, n_rec=10000,hi=hi)
+model<-function(par){#
+   samples<-rnorm(10,mean=par[1],sd=par[2])#
+   print(hi)#
+   return(c(mean(samples),sd(samples)))#
+ }#
+ ABC_Marjoram_original<- ABC_mcmc(method="Marjoram",model=model, prior=list(c("unif",0,10),c("unif",1,5)),#
+   summary_stat_target=summarydata, n_rec=10000)#
+ str(ABC_Marjoram_original)#
+ par(mfrow=c(2,1))#
+ hist(ABC_Marjoram_original$param[5000:10000,1],main="Posterior for mean")#
+ hist(ABC_Marjoram_original$param[5000:10000,2],main="Posterior for standard deviation")
+data<-rnorm(10,mean=5.3,sd=2.7)#
+ summarydata<-c(mean(data),sd(data))#
+#
+ model<-function(par){#
+   samples<-rnorm(10,mean=par[1],sd=par[2])#
+   #print(hi)#
+   return(c(mean(samples),sd(samples)))#
+ }#
+ ABC_Marjoram_original<- ABC_mcmc(method="Marjoram",model=model, prior=list(c("unif",0,10),c("unif",1,5)),#
+   summary_stat_target=summarydata, n_rec=10000)#
+ str(ABC_Marjoram_original)#
+ par(mfrow=c(2,1))#
+ hist(ABC_Marjoram_original$param[5000:10000,1],main="Posterior for mean")#
+ hist(ABC_Marjoram_original$param[5000:10000,2],main="Posterior for standard deviation")
+ABC_mcmc
+data<-rnorm(10,mean=5.3,sd=2.7)#
+ summarydata<-c(mean(data),sd(data))#
+#
+ model<-function(par,hi=hi){#
+   samples<-rnorm(10,mean=par[1],sd=par[2])#
+   #print(hi)#
+   return(c(mean(samples),sd(samples)))#
+ }#
+ hi<-"hi"#
+ ABC_Marjoram_original<- ABC_mcmc(method="Marjoram",model=model, prior=list(c("unif",0,10),c("unif",1,5)),#
+   summary_stat_target=summarydata, n_rec=10000,hi)#
+ str(ABC_Marjoram_original)#
+ par(mfrow=c(2,1))#
+ hist(ABC_Marjoram_original$param[5000:10000,1],main="Posterior for mean")#
+ hist(ABC_Marjoram_original$param[5000:10000,2],main="Posterior for standard deviation")
+ABC_Marjoram_original<- ABC_mcmc(method="Marjoram",model=model, prior=list(c("unif",0,10),c("unif",1,5)),
+summary_stat_target=summarydata, n_rec=10000,hi)
+hi
+?ABC_mcmc
+ABC_Marjoram_original<- ABC_mcmc(method="Marjoram_original",model=model, prior=list(c("unif",0,10),c("unif",1,5)),
+summary_stat_target=summarydata, n_rec=10000)
+str(ABC_Marjoram_original)
+hist(ABC_Marjoram_original$param[5000:10000,1],main="Posterior for mean")#
+ hist(ABC_Marjoram_original$param[5000:10000,2],main="Posterior for standard deviation")
+model<-function(par,hi=hi){#
+   samples<-rnorm(10,mean=par[1],sd=par[2])#
+   #print(hi)#
+   return(c(mean(samples),sd(samples)))#
+ }#
+ hi<-"hi"#
+ ABC_Marjoram_original<- ABC_mcmc(method="Marjoram_original",model=model, prior=list(c("unif",0,10),c("unif",1,5)),summary_stat_target=summarydata, n_rec=10000,hi=hi)#
+ str(ABC_Marjoram_original)#
+ par(mfrow=c(2,1))#
+ hist(ABC_Marjoram_original$param[5000:10000,1],main="Posterior for mean")#
+ hist(ABC_Marjoram_original$param[5000:10000,2],main="Posterior for standard deviation")
+library(coda)#
+data<-rnorm(10,mean=5.3,sd=2.7)#
+meandata<-mean(data)#
+sddata<-sd(data)#
+#
+ABC_acc<-function(par){#
+  if(par[2]<=0){return(FALSE)}#
+  samples<-rnorm(10,mean=par[1],sd=par[2])#
+#
+  diffmean<- abs(mean(samples)-meandata)#
+  diffsd<-abs(sd(samples)-sd(samples))#
+  if((diffmean<0.1) & (diffsd<0.2)){return(T)else return(F)}#
+  }#
+#
+run_MCMC_ABC<-function(startvalue,iterations){#
+  chain<-array(dim=c(iterations+1,2))#
+  chain[1,]=startvalue#
+  for(i in 1:iterations){#
+    proposal <- rnorm(2,mean=chain[i,], sd=c(0.7,0.7))#
+ if(ABC_acc(proposal)){#
+   chain[i+1,]=proposal#
+    }else{#
+      chain[i+1,]=chain[i,]#
+      }#
+    }#
+  return(mcmc(chain))#
+  }#
+#
+posterior<-run_MCMC_ABC(c(4,2.3,300000))#
+#
+plot(posteriors)
+library(coda)#
+data<-rnorm(10,mean=5.3,sd=2.7)#
+meandata<-mean(data)#
+sddata<-sd(data)#
+#
+ABC_acc<-function(par){#
+  if(par[2]<=0){return(FALSE)}#
+  samples<-rnorm(10,mean=par[1],sd=par[2])#
+  diffmean<- abs(mean(samples)-meandata)#
+  diffsd<-abs(sd(samples)-sddata)#
+  if((diffmean<0.1) & (diffsd<0.2)){#
+    return(T)}else{#
+      return(F)}#
+  }#
+#
+run_MCMC_ABC<-function(startvalue,iterations){#
+  chain<-array(dim=c(iterations+1,2))#
+  chain[1,]=startvalue#
+  for(i in 1:iterations){#
+    proposal <- rnorm(2,mean=chain[i,], sd=c(0.7,0.7))#
+ if(ABC_acc(proposal)){#
+   chain[i+1,]=proposal#
+    }else{#
+      chain[i+1,]=chain[i,]#
+      }#
+    }#
+  return(mcmc(chain))#
+  }#
+#
+posterior<-run_MCMC_ABC(c(4,2.3,300000))#
+#
+plot(posteriors)
+array(c(1,2))
+library(coda)#
+data<-rnorm(10,mean=5.3,sd=2.7)#
+meandata<-mean(data)#
+sddata<-sd(data)#
+#
+ABC_acc<-function(par){#
+  if(par[2]<=0){return(FALSE)}#
+  samples<-rnorm(10,mean=par[1],sd=par[2])#
+  diffmean<- abs(mean(samples)-meandata)#
+  diffsd<-abs(sd(samples)-sddata)#
+  if((diffmean<0.1) & (diffsd<0.2)){#
+    return(T)}else{#
+      return(F)}#
+  }#
+#
+run_MCMC_ABC<-function(startvalue,iterations){#
+  chain<-array(0,dim=c(iterations+1,2))#
+  chain[1,]=startvalue#
+  for(i in 1:iterations){#
+    proposal <- rnorm(2,mean=chain[i,], sd=c(0.7,0.7))#
+ if(ABC_acc(proposal)){#
+   chain[i+1,]=proposal#
+    }else{#
+      chain[i+1,]=chain[i,]#
+      }#
+    }#
+  return(mcmc(chain))#
+  }#
+#
+posterior<-run_MCMC_ABC(c(4,2.3),300000)#
+#
+plot(posteriors)
+plot(posterior)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+library(EasyABC)#
+library(coda)#
+n<-3#
+numbsim<-1;lambda<-2.0;mu<-0.5;frac<-0.6;age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+#  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)#
+#
+truetrait<-tipstates#
+summarytrait=c(mean(truetrait),sd(truetrait))#
+model<-function(sigmasq,root=root,tree=tree){#
+  #sigmasq<-1#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]#
+  return(c(mean(simtrait),sd(simtrait)))#
+  }#
+#model(1,root=root,tree=tree)#
+# sigmasqprior<- list(c("unif",0,100))#
+# ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,root=root,tree=tree,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)#
+# str(ABC_Marjoram_original)#
+# hist(ABC_Marjoram_original$param[5000:10000],main="Posterior of sigma.sq")#
+#cannot pass through argument#
+ABC_acc<-function(sigmasq,root=root,tree=tree,summarytrait=summarytrait){#
+    if(sigmasq<=0){return(FALSE)}#
+    summarysamples<-model(sigmasq,root=root,tree=tree)#
+    diffmean<-abs(summarysamples[1]-summarytrait[1])#
+    diffsd<-abs(summarysample[2]-summarytrait[2])#
+    if( (diffmean<0.1) & (diffsd<0.2)){#
+      return(TRUE)}else{return(FALSE)}#
+      }#
+    }#
+#
+run_MCMC_ABC<-function(startvalue,iterations){#
+  chain<-array(0,dim=c(iterations+1,1))#
+  chain[1,]<-startvalue#
+  for(i in 1:iterations){#
+    proposal<-rnorm(n=1,mean=chain[i,],sd=c(0.5))#
+  if(ABC_acc(proposal)){#
+    chain[i+1,]<-proposal#
+  }else{#
+    chain[i+1,]<-chain[i,]#
+  }#
+}#
+return(mcmc(chain))#
+}#
+#
+posterior<-run_MCMC_ABC(c(1),1000000)#
+plot(posterior)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+library(EasyABC)#
+library(coda)#
+n<-3#
+numbsim<-1;lambda<-2.0;mu<-0.5;frac<-0.6;age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+#  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)#
+#
+truetrait<-tipstates#
+summarytrait=c(mean(truetrait),sd(truetrait))#
+model<-function(sigmasq,root=root,tree=tree){#
+  #sigmasq<-1#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]#
+  return(c(mean(simtrait),sd(simtrait)))#
+  }#
+#model(1,root=root,tree=tree)#
+# sigmasqprior<- list(c("unif",0,100))#
+# ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,root=root,tree=tree,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)#
+# str(ABC_Marjoram_original)#
+# hist(ABC_Marjoram_original$param[5000:10000],main="Posterior of sigma.sq")#
+#cannot pass through argument#
+ABC_acc<-function(sigmasq,root=root,tree=tree,summarytrait=summarytrait){#
+    if(sigmasq<=0){return(FALSE)}#
+    summarysamples<-model(sigmasq,root=root,tree=tree)#
+    diffmean<-abs(summarysamples[1]-summarytrait[1])#
+    diffsd<-abs(summarysample[2]-summarytrait[2])#
+    if( (diffmean<0.1) & (diffsd<0.2)){#
+      return(TRUE)}else{return(FALSE)}#
+      }#
+run_MCMC_ABC<-function(startvalue,iterations,root=root,tree=tree,summarytrait=summarytrait){#
+  chain<-array(0,dim=c(iterations+1,1))#
+  chain[1,]<-startvalue#
+  for(i in 1:iterations){#
+    proposal<-rnorm(n=1,mean=chain[i,],sd=c(0.5))#
+  if(ABC_acc(proposal)){#
+    chain[i+1,]<-proposal#
+  }else{#
+    chain[i+1,]<-chain[i,]#
+  }#
+}#
+return(mcmc(chain))#
+}#
+#
+posterior<-run_MCMC_ABC(c(1),1000000,root=root,tree=tree,summarytrait=summarytrait)#
+plot(posterior)#
+#
+#https://theoreticalecology.wordpress.com/2012/07/15/a-simple-approximate-bayesian-computation-mcmc-abc-mcmc-in-r/#
+# data<-rnorm(10,mean=5.3,sd=2.7)#
+# meandata<-mean(data)#
+# sddata<-sd(data)#
+# #
+# ABC_acc<-function(par){#
+#   if(par[2]<=0){return(FALSE)}#
+#   samples<-rnorm(10,mean=par[1],sd=par[2])#
+#   diffmean<- abs(mean(samples)-meandata)#
+#   diffsd<-abs(sd(samples)-sddata)#
+#   if((diffmean<0.1) & (diffsd<0.2)){#
+#     return(T)}else{#
+#       return(F)}#
+#   }#
+# #
+# run_MCMC_ABC<-function(startvalue,iterations){#
+#   chain<-array(0,dim=c(iterations+1,2))#
+#   chain[1,]=startvalue#
+#   for(i in 1:iterations){#
+#     proposal <- rnorm(2,mean=chain[i,], sd=c(0.7,0.7))#
+#  if(ABC_acc(proposal)){#
+#    chain[i+1,]=proposal#
+#     }else{#
+#       chain[i+1,]=chain[i,]#
+#       }#
+#     }#
+#   return(mcmc(chain))#
+#   }#
+# #
+# posterior<-run_MCMC_ABC(c(4,2.3),300000)#
+# #
+# plot(posterior)#
+# The following can only work for model without argument#
+#https://theoreticalecology.wordpress.com/2012/12/02/the-easyabc-package-for-approximate-bayesian-computation-in-r/#
+ # data<-rnorm(10,mean=5.3,sd=2.7)#
+ # summarydata<-c(mean(data),sd(data))#
+ ##
+ # model<-function(par){#
+ #   samples<-rnorm(10,mean=par[1],sd=par[2])#
+ #   #print(hi)#
+ #   return(c(mean(samples),sd(samples)))#
+ # }#
+ # ABC_Marjoram_original<- ABC_mcmc(method="Marjoram_original",model=model, prior=list(c("unif",0,10),c("unif",1,5)),summary_stat_target=summarydata, n_rec=10000)#
+ # str(ABC_Marjoram_original)#
+ # par(mfrow=c(2,1))#
+ # hist(ABC_Marjoram_original$param[5000:10000,1],main="Posterior for mean")#
+ # hist(ABC_Marjoram_original$param[5000:10000,2],main="Posterior for standard deviation")#
+#rm(list=ls())#
+#install.packages("EasyABC")#
+# library(EasyABC)#
+#my_prior=list(c("unif",0,1),c("normal",1,2))#
+#my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))#
+# toy_model<-function(x){#
+#   c(x[1]+x[2]+rnorm(1,0,0.1),x[1]*x[2]+rnorm(1,0,0.1))#
+# }#
+# toy_prior = list(c("unif",0,100),c("normal",1,2))#
+# sum_stat_obs=c(1.5,0.5)#
+# set.seed(1)#
+# n=10#
+# p=0.5#
+# ABC_rej<-ABC_rejection(model=toy_model,prior=toy_prior,nb_simul=n,summary_stat_target=sum_stat_obs,tol=p)
+posterior<-run_MCMC_ABC(c(1),1000000,root=root,tree=tree,summarytrait=summarytrait)
+run_MCMC_ABC<-function(startvalue,iterations,root=root,tree=tree,summarytrait=summarytrait){#
+  chain<-array(0,dim=c(iterations+1,1))#
+  chain[1,]<-startvalue#
+  for(i in 1:iterations){#
+    proposal<-rnorm(n=1,mean=chain[i,],sd=c(0.5))#
+  if(ABC_acc(proposal, root=root,tree=tree,summarytrait=summarytrait)){#
+    chain[i+1,]<-proposal#
+  }else{#
+    chain[i+1,]<-chain[i,]#
+  }#
+}#
+return(mcmc(chain))#
+}#
+#
+posterior<-run_MCMC_ABC(c(1),1000000,root=root,tree=tree,summarytrait=summarytrait)#
+plot(posterior)
+ABC_acc<-function(sigmasq,root=root,tree=tree,summarytrait=summarytrait){#
+    if(sigmasq<=0){return(FALSE)}#
+    summarysamples<-model(sigmasq,root=root,tree=tree)#
+    diffmean<-abs(summarysamples[1]-summarytrait[1])#
+    diffsd<-abs(summarysamples[2]-summarytrait[2])#
+    if( (diffmean<0.1) & (diffsd<0.2)){#
+      return(TRUE)}else{return(FALSE)}#
+      }#
+run_MCMC_ABC<-function(startvalue,iterations,root=root,tree=tree,summarytrait=summarytrait){#
+  chain<-array(0,dim=c(iterations+1,1))#
+  chain[1,]<-startvalue#
+  for(i in 1:iterations){#
+    proposal<-rnorm(n=1,mean=chain[i,],sd=c(0.5))#
+  if(ABC_acc(proposal, root=root,tree=tree,summarytrait=summarytrait)){#
+    chain[i+1,]<-proposal#
+  }else{#
+    chain[i+1,]<-chain[i,]#
+  }#
+}#
+return(mcmc(chain))#
+}
+posterior<-run_MCMC_ABC(c(1),1000000,root=root,tree=tree,summarytrait=summarytrait)
+plot(posterior)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+library(EasyABC)#
+library(coda)#
+n<-3#
+numbsim<-1;lambda<-2.0;mu<-0.5;frac<-0.6;age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+#  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)#
+#
+truetrait<-tipstates#
+summarytrait=c(mean(truetrait),sd(truetrait))#
+model<-function(sigmasq,root=root,tree=tree){#
+  #sigmasq<-1#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]#
+  return(c(mean(simtrait),sd(simtrait)))#
+  }#
+#model(1,root=root,tree=tree)#
+# sigmasqprior<- list(c("unif",0,100))#
+# ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,root=root,tree=tree,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)#
+# str(ABC_Marjoram_original)#
+# hist(ABC_Marjoram_original$param[5000:10000],main="Posterior of sigma.sq")#
+#cannot pass through argument#
+ABC_acc<-function(sigmasq,root=root,tree=tree,summarytrait=summarytrait){#
+    if(sigmasq<=0){return(FALSE)}#
+    summarysamples<-model(sigmasq,root=root,tree=tree)#
+    diffmean<-abs(summarysamples[1]-summarytrait[1])#
+    diffsd<-abs(summarysamples[2]-summarytrait[2])#
+    if( (diffmean<0.1) & (diffsd<0.2)){#
+      return(TRUE)}else{return(FALSE)}#
+      }#
+run_MCMC_ABC<-function(startvalue,iterations,root=root,tree=tree,summarytrait=summarytrait){#
+  chain<-array(0,dim=c(iterations+1,1))#
+  chain[1,]<-startvalue#
+  for(i in 1:iterations){#
+    proposal<-rnorm(n=1,mean=chain[i,],sd=c(0.5))#
+  if(ABC_acc(proposal, root=root,tree=tree,summarytrait=summarytrait)){#
+    chain[i+1,]<-proposal#
+  }else{#
+    chain[i+1,]<-chain[i,]#
+  }#
+}#
+return(mcmc(chain))#
+}#
+#
+posterior<-run_MCMC_ABC(c(1),10000,root=root,tree=tree,summarytrait=summarytrait)#
+plot(posterior)#
+#https://theoreticalecology.wordpress.com/2012/07/15/a-simple-approximate-bayesian-computation-mcmc-abc-mcmc-in-r/#
+# data<-rnorm(10,mean=5.3,sd=2.7)#
+# meandata<-mean(data)#
+# sddata<-sd(data)#
+##
+# ABC_acc<-function(par){#
+#   if(par[2]<=0){return(FALSE)}#
+#   samples<-rnorm(10,mean=par[1],sd=par[2])#
+#   diffmean<- abs(mean(samples)-meandata)#
+#   diffsd<-abs(sd(samples)-sddata)#
+#   if((diffmean<0.1) & (diffsd<0.2)){#
+#     return(T)}else{#
+#       return(F)}#
+#   }#
+##
+# run_MCMC_ABC<-function(startvalue,iterations){#
+#   chain<-array(0,dim=c(iterations+1,2))#
+#   chain[1,]=startvalue#
+#   for(i in 1:iterations){#
+#     proposal <- rnorm(2,mean=chain[i,], sd=c(0.7,0.7))#
+#  if(ABC_acc(proposal)){#
+#    chain[i+1,]=proposal#
+#     }else{#
+#       chain[i+1,]=chain[i,]#
+#       }#
+#     }#
+#   return(mcmc(chain))#
+#   }#
+##
+# posterior<-run_MCMC_ABC(c(4,2.3),300000)#
+##
+# plot(posterior)#
+# The following can only work for model without argument#
+#https://theoreticalecology.wordpress.com/2012/12/02/the-easyabc-package-for-approximate-bayesian-computation-in-r/#
+ # data<-rnorm(10,mean=5.3,sd=2.7)#
+ # summarydata<-c(mean(data),sd(data))#
+ ##
+ # model<-function(par){#
+ #   samples<-rnorm(10,mean=par[1],sd=par[2])#
+ #   #print(hi)#
+ #   return(c(mean(samples),sd(samples)))#
+ # }#
+ # ABC_Marjoram_original<- ABC_mcmc(method="Marjoram_original",model=model, prior=list(c("unif",0,10),c("unif",1,5)),summary_stat_target=summarydata, n_rec=10000)#
+ # str(ABC_Marjoram_original)#
+ # par(mfrow=c(2,1))#
+ # hist(ABC_Marjoram_original$param[5000:10000,1],main="Posterior for mean")#
+ # hist(ABC_Marjoram_original$param[5000:10000,2],main="Posterior for standard deviation")#
+#rm(list=ls())#
+#install.packages("EasyABC")#
+# library(EasyABC)#
+#my_prior=list(c("unif",0,1),c("normal",1,2))#
+#my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))#
+# toy_model<-function(x){#
+#   c(x[1]+x[2]+rnorm(1,0,0.1),x[1]*x[2]+rnorm(1,0,0.1))#
+# }#
+# toy_prior = list(c("unif",0,100),c("normal",1,2))#
+# sum_stat_obs=c(1.5,0.5)#
+# set.seed(1)#
+# n=10#
+# p=0.5#
+# ABC_rej<-ABC_rejection(model=toy_model,prior=toy_prior,nb_simul=n,summary_stat_target=sum_stat_obs,tol=p)
+posterior<-run_MCMC_ABC(c(1),50000,root=root,tree=tree,summarytrait=summarytrait)
+plot(posterior)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+library(EasyABC)#
+library(coda)#
+n<-10#
+numbsim<-1;lambda<-2.0;mu<-0.5;frac<-0.6;age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+#  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)#
+#
+truetrait<-tipstates#
+summarytrait=c(mean(truetrait),sd(truetrait))#
+model<-function(sigmasq,root=root,tree=tree){#
+  #sigmasq<-1#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]#
+  return(c(mean(simtrait),sd(simtrait)))#
+  }#
+#model(1,root=root,tree=tree)#
+# sigmasqprior<- list(c("unif",0,100))#
+# ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,root=root,tree=tree,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)#
+# str(ABC_Marjoram_original)#
+# hist(ABC_Marjoram_original$param[5000:10000],main="Posterior of sigma.sq")#
+#cannot pass through argument#
+ABC_acc<-function(sigmasq,root=root,tree=tree,summarytrait=summarytrait){#
+    if(sigmasq<=0){return(FALSE)}#
+    summarysamples<-model(sigmasq,root=root,tree=tree)#
+    diffmean<-abs(summarysamples[1]-summarytrait[1])#
+    diffsd<-abs(summarysamples[2]-summarytrait[2])#
+    if( (diffmean<0.1) & (diffsd<0.2)){#
+      return(TRUE)}else{return(FALSE)}#
+      }#
+run_MCMC_ABC<-function(startvalue,iterations,root=root,tree=tree,summarytrait=summarytrait){#
+  chain<-array(0,dim=c(iterations+1,1))#
+  chain[1,]<-startvalue#
+  for(i in 1:iterations){#
+    proposal<-rnorm(n=1,mean=chain[i,],sd=c(0.5))#
+  if(ABC_acc(proposal, root=root,tree=tree,summarytrait=summarytrait)){#
+    chain[i+1,]<-proposal#
+  }else{#
+    chain[i+1,]<-chain[i,]#
+  }#
+}#
+return(mcmc(chain))#
+}#
+#
+posterior<-run_MCMC_ABC(c(1),50000,root=root,tree=tree,summarytrait=summarytrait)#
+plot(posterior)#
+#https://theoreticalecology.wordpress.com/2012/07/15/a-simple-approximate-bayesian-computation-mcmc-abc-mcmc-in-r/#
+# data<-rnorm(10,mean=5.3,sd=2.7)#
+# meandata<-mean(data)#
+# sddata<-sd(data)#
+##
+# ABC_acc<-function(par){#
+#   if(par[2]<=0){return(FALSE)}#
+#   samples<-rnorm(10,mean=par[1],sd=par[2])#
+#   diffmean<- abs(mean(samples)-meandata)#
+#   diffsd<-abs(sd(samples)-sddata)#
+#   if((diffmean<0.1) & (diffsd<0.2)){#
+#     return(T)}else{#
+#       return(F)}#
+#   }#
+##
+# run_MCMC_ABC<-function(startvalue,iterations){#
+#   chain<-array(0,dim=c(iterations+1,2))#
+#   chain[1,]=startvalue#
+#   for(i in 1:iterations){#
+#     proposal <- rnorm(2,mean=chain[i,], sd=c(0.7,0.7))#
+#  if(ABC_acc(proposal)){#
+#    chain[i+1,]=proposal#
+#     }else{#
+#       chain[i+1,]=chain[i,]#
+#       }#
+#     }#
+#   return(mcmc(chain))#
+#   }#
+##
+# posterior<-run_MCMC_ABC(c(4,2.3),300000)#
+##
+# plot(posterior)#
+# The following can only work for model without argument#
+#https://theoreticalecology.wordpress.com/2012/12/02/the-easyabc-package-for-approximate-bayesian-computation-in-r/#
+ # data<-rnorm(10,mean=5.3,sd=2.7)#
+ # summarydata<-c(mean(data),sd(data))#
+ ##
+ # model<-function(par){#
+ #   samples<-rnorm(10,mean=par[1],sd=par[2])#
+ #   #print(hi)#
+ #   return(c(mean(samples),sd(samples)))#
+ # }#
+ # ABC_Marjoram_original<- ABC_mcmc(method="Marjoram_original",model=model, prior=list(c("unif",0,10),c("unif",1,5)),summary_stat_target=summarydata, n_rec=10000)#
+ # str(ABC_Marjoram_original)#
+ # par(mfrow=c(2,1))#
+ # hist(ABC_Marjoram_original$param[5000:10000,1],main="Posterior for mean")#
+ # hist(ABC_Marjoram_original$param[5000:10000,2],main="Posterior for standard deviation")#
+#rm(list=ls())#
+#install.packages("EasyABC")#
+# library(EasyABC)#
+#my_prior=list(c("unif",0,1),c("normal",1,2))#
+#my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))#
+# toy_model<-function(x){#
+#   c(x[1]+x[2]+rnorm(1,0,0.1),x[1]*x[2]+rnorm(1,0,0.1))#
+# }#
+# toy_prior = list(c("unif",0,100),c("normal",1,2))#
+# sum_stat_obs=c(1.5,0.5)#
+# set.seed(1)#
+# n=10#
+# p=0.5#
+# ABC_rej<-ABC_rejection(model=toy_model,prior=toy_prior,nb_simul=n,summary_stat_target=sum_stat_obs,tol=p)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+library(EasyABC)#
+library(coda)#
+n<-30#
+numbsim<-1;lambda<-2.0;mu<-0.5;frac<-0.6;age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+root<-0#
+true.sigma.sq<-1#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+#  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)#
+#
+truetrait<-tipstates#
+summarytrait=c(mean(truetrait),sd(truetrait))#
+model<-function(sigmasq,root=root,tree=tree){#
+  #sigmasq<-1#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]#
+  return(c(mean(simtrait),sd(simtrait)))#
+  }#
+#model(1,root=root,tree=tree)#
+# sigmasqprior<- list(c("unif",0,100))#
+# ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,root=root,tree=tree,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)#
+# str(ABC_Marjoram_original)#
+# hist(ABC_Marjoram_original$param[5000:10000],main="Posterior of sigma.sq")#
+#cannot pass through argument#
+ABC_acc<-function(sigmasq,root=root,tree=tree,summarytrait=summarytrait){#
+    if(sigmasq<=0){return(FALSE)}#
+    summarysamples<-model(sigmasq,root=root,tree=tree)#
+    diffmean<-abs(summarysamples[1]-summarytrait[1])#
+    diffsd<-abs(summarysamples[2]-summarytrait[2])#
+    if( (diffmean<0.1) & (diffsd<0.2)){#
+      return(TRUE)}else{return(FALSE)}#
+      }#
+run_MCMC_ABC<-function(startvalue,iterations,root=root,tree=tree,summarytrait=summarytrait){#
+  chain<-array(0,dim=c(iterations+1,1))#
+  chain[1,]<-startvalue#
+  for(i in 1:iterations){#
+    proposal<-rnorm(n=1,mean=chain[i,],sd=c(0.5))#
+  if(ABC_acc(proposal, root=root,tree=tree,summarytrait=summarytrait)){#
+    chain[i+1,]<-proposal#
+  }else{#
+    chain[i+1,]<-chain[i,]#
+  }#
+}#
+return(mcmc(chain))#
+}#
+#
+posterior<-run_MCMC_ABC(c(1),50000,root=root,tree=tree,summarytrait=summarytrait)#
+plot(posterior)#
+#https://theoreticalecology.wordpress.com/2012/07/15/a-simple-approximate-bayesian-computation-mcmc-abc-mcmc-in-r/#
+# data<-rnorm(10,mean=5.3,sd=2.7)#
+# meandata<-mean(data)#
+# sddata<-sd(data)#
+##
+# ABC_acc<-function(par){#
+#   if(par[2]<=0){return(FALSE)}#
+#   samples<-rnorm(10,mean=par[1],sd=par[2])#
+#   diffmean<- abs(mean(samples)-meandata)#
+#   diffsd<-abs(sd(samples)-sddata)#
+#   if((diffmean<0.1) & (diffsd<0.2)){#
+#     return(T)}else{#
+#       return(F)}#
+#   }#
+##
+# run_MCMC_ABC<-function(startvalue,iterations){#
+#   chain<-array(0,dim=c(iterations+1,2))#
+#   chain[1,]=startvalue#
+#   for(i in 1:iterations){#
+#     proposal <- rnorm(2,mean=chain[i,], sd=c(0.7,0.7))#
+#  if(ABC_acc(proposal)){#
+#    chain[i+1,]=proposal#
+#     }else{#
+#       chain[i+1,]=chain[i,]#
+#       }#
+#     }#
+#   return(mcmc(chain))#
+#   }#
+##
+# posterior<-run_MCMC_ABC(c(4,2.3),300000)#
+##
+# plot(posterior)#
+# The following can only work for model without argument#
+#https://theoreticalecology.wordpress.com/2012/12/02/the-easyabc-package-for-approximate-bayesian-computation-in-r/#
+ # data<-rnorm(10,mean=5.3,sd=2.7)#
+ # summarydata<-c(mean(data),sd(data))#
+ ##
+ # model<-function(par){#
+ #   samples<-rnorm(10,mean=par[1],sd=par[2])#
+ #   #print(hi)#
+ #   return(c(mean(samples),sd(samples)))#
+ # }#
+ # ABC_Marjoram_original<- ABC_mcmc(method="Marjoram_original",model=model, prior=list(c("unif",0,10),c("unif",1,5)),summary_stat_target=summarydata, n_rec=10000)#
+ # str(ABC_Marjoram_original)#
+ # par(mfrow=c(2,1))#
+ # hist(ABC_Marjoram_original$param[5000:10000,1],main="Posterior for mean")#
+ # hist(ABC_Marjoram_original$param[5000:10000,2],main="Posterior for standard deviation")#
+#rm(list=ls())#
+#install.packages("EasyABC")#
+# library(EasyABC)#
+#my_prior=list(c("unif",0,1),c("normal",1,2))#
+#my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))#
+# toy_model<-function(x){#
+#   c(x[1]+x[2]+rnorm(1,0,0.1),x[1]*x[2]+rnorm(1,0,0.1))#
+# }#
+# toy_prior = list(c("unif",0,100),c("normal",1,2))#
+# sum_stat_obs=c(1.5,0.5)#
+# set.seed(1)#
+# n=10#
+# p=0.5#
+# ABC_rej<-ABC_rejection(model=toy_model,prior=toy_prior,nb_simul=n,summary_stat_target=sum_stat_obs,tol=p)
+rm(list=ls())#
+#install.packages("TreeSim")#
+library(TreeSim)#
+library(EasyABC)#
+library(coda)#
+n<-30#
+numbsim<-1;lambda<-2.0;mu<-0.5;frac<-0.6;age<-2#
+tree<-sim.bd.taxa.age(n=n,numbsim=1,lambda=lambda,mu=mu,frac=frac,age=age,mrca=TRUE)[[1]]#
+tree<-reorder(tree,"postorder")#
+plot(tree)#
+nodelabels()#
+tiplabels()#
+root<-0#
+true.sigma.sq<-2#
+nodestates<-array(0,c(2*n-1))#
+nodestates[n+1]<-root#
+N<-dim(tree$edge)[1]#
+anc<-tree$edge[,1]#
+des<-tree$edge[,2]#
+treelength<-tree$edge.length#
+for(index in N:1){#
+#  print(c(anc[index],des[index]))#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd= sqrt(true.sigma.sq*treelength[index]))#
+  }#
+tipstates<-nodestates[1:n]#
+print(tipstates)#
+#
+truetrait<-tipstates#
+summarytrait=c(mean(truetrait),sd(truetrait))#
+model<-function(sigmasq,root=root,tree=tree){#
+  #sigmasq<-1#
+  n<-Ntip(tree)#
+  nodestates<-array(0,c(2*n-1))#
+  nodestates[n+1]<-root#
+  N<-dim(tree$edge)[1]#
+  anc<-tree$edge[,1]#
+  des<-tree$edge[,2]#
+  treelength<-tree$edge.length#
+  for(index in N:1){#
+  nodestates[des[index]]<-rnorm(n=1,mean=nodestates[anc[index]],sd=sqrt(sigmasq*treelength[index]))#
+  }#
+  simtrait<-nodestates[1:n]#
+  return(c(mean(simtrait),sd(simtrait)))#
+  }#
+#model(1,root=root,tree=tree)#
+# sigmasqprior<- list(c("unif",0,100))#
+# ABC_Marjoram_original<-ABC_mcmc(method="Marjoram",model=model,root=root,tree=tree,prior=sigmasqprior,summary_stat_target=summarytrait,n_rec=10000)#
+# str(ABC_Marjoram_original)#
+# hist(ABC_Marjoram_original$param[5000:10000],main="Posterior of sigma.sq")#
+#cannot pass through argument#
+ABC_acc<-function(sigmasq,root=root,tree=tree,summarytrait=summarytrait){#
+    if(sigmasq<=0){return(FALSE)}#
+    summarysamples<-model(sigmasq,root=root,tree=tree)#
+    diffmean<-abs(summarysamples[1]-summarytrait[1])#
+    diffsd<-abs(summarysamples[2]-summarytrait[2])#
+    if( (diffmean<0.1) & (diffsd<0.2)){#
+      return(TRUE)}else{return(FALSE)}#
+      }#
+run_MCMC_ABC<-function(startvalue,iterations,root=root,tree=tree,summarytrait=summarytrait){#
+  chain<-array(0,dim=c(iterations+1,1))#
+  chain[1,]<-startvalue#
+  for(i in 1:iterations){#
+    proposal<-rnorm(n=1,mean=chain[i,],sd=c(0.5))#
+  if(ABC_acc(proposal, root=root,tree=tree,summarytrait=summarytrait)){#
+    chain[i+1,]<-proposal#
+  }else{#
+    chain[i+1,]<-chain[i,]#
+  }#
+}#
+return(mcmc(chain))#
+}#
+#
+posterior<-run_MCMC_ABC(c(1),50000,root=root,tree=tree,summarytrait=summarytrait)#
+plot(posterior)#
+#https://theoreticalecology.wordpress.com/2012/07/15/a-simple-approximate-bayesian-computation-mcmc-abc-mcmc-in-r/#
+# data<-rnorm(10,mean=5.3,sd=2.7)#
+# meandata<-mean(data)#
+# sddata<-sd(data)#
+##
+# ABC_acc<-function(par){#
+#   if(par[2]<=0){return(FALSE)}#
+#   samples<-rnorm(10,mean=par[1],sd=par[2])#
+#   diffmean<- abs(mean(samples)-meandata)#
+#   diffsd<-abs(sd(samples)-sddata)#
+#   if((diffmean<0.1) & (diffsd<0.2)){#
+#     return(T)}else{#
+#       return(F)}#
+#   }#
+##
+# run_MCMC_ABC<-function(startvalue,iterations){#
+#   chain<-array(0,dim=c(iterations+1,2))#
+#   chain[1,]=startvalue#
+#   for(i in 1:iterations){#
+#     proposal <- rnorm(2,mean=chain[i,], sd=c(0.7,0.7))#
+#  if(ABC_acc(proposal)){#
+#    chain[i+1,]=proposal#
+#     }else{#
+#       chain[i+1,]=chain[i,]#
+#       }#
+#     }#
+#   return(mcmc(chain))#
+#   }#
+##
+# posterior<-run_MCMC_ABC(c(4,2.3),300000)#
+##
+# plot(posterior)#
+# The following can only work for model without argument#
+#https://theoreticalecology.wordpress.com/2012/12/02/the-easyabc-package-for-approximate-bayesian-computation-in-r/#
+ # data<-rnorm(10,mean=5.3,sd=2.7)#
+ # summarydata<-c(mean(data),sd(data))#
+ ##
+ # model<-function(par){#
+ #   samples<-rnorm(10,mean=par[1],sd=par[2])#
+ #   #print(hi)#
+ #   return(c(mean(samples),sd(samples)))#
+ # }#
+ # ABC_Marjoram_original<- ABC_mcmc(method="Marjoram_original",model=model, prior=list(c("unif",0,10),c("unif",1,5)),summary_stat_target=summarydata, n_rec=10000)#
+ # str(ABC_Marjoram_original)#
+ # par(mfrow=c(2,1))#
+ # hist(ABC_Marjoram_original$param[5000:10000,1],main="Posterior for mean")#
+ # hist(ABC_Marjoram_original$param[5000:10000,2],main="Posterior for standard deviation")#
+#rm(list=ls())#
+#install.packages("EasyABC")#
+# library(EasyABC)#
+#my_prior=list(c("unif",0,1),c("normal",1,2))#
+#my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))#
+# toy_model<-function(x){#
+#   c(x[1]+x[2]+rnorm(1,0,0.1),x[1]*x[2]+rnorm(1,0,0.1))#
+# }#
+# toy_prior = list(c("unif",0,100),c("normal",1,2))#
+# sum_stat_obs=c(1.5,0.5)#
+# set.seed(1)#
+# n=10#
+# p=0.5#
+# ABC_rej<-ABC_rejection(model=toy_model,prior=toy_prior,nb_simul=n,summary_stat_target=sum_stat_obs,tol=p)
+load("realtree.RData")
+setwd("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/micezhangdataset/")
+load("realtree.RData")
+library(ape)#
+library(phytools)#
+tree1<-rtree(5)#
+plot(tree1)#
+tree2<-rtree(5)#
+plot(tree2)#
+y<-list(tree1=tree1,tree2=tree2)#
+class(y) <- "multiPhylo"#
+contree<-averageTree(y, start=NULL, method="quadratic.path.difference",tol=1e-12, quiet=FALSE)#
+plot(contree)
+contree2<-consensus(y)
+plot(contree2)
+contree2<-consensus(y,p=0.5)#
+plot(contree2)
+plot(tree1)
+plot(tree2)
+class(y) <- "multiPhylo"
+contree<-averageTree(y, start=NULL, method="quadratic.path.difference",tol=1e-12, quiet=FALSE)
+plot(contree)
+contree2<-consensus(y,p=0.5)
+plot(contree2)
+contree2<-consensus(y,p=0.8)
+plot(contree2)
+contree3<-ls.consensus(y,tol=1e-3)
+plot(contree3)
+setwd("~/Dropbox/FCU/Teaching/Mentoring/2017Spring/YiWeiHsu/Rcode/main.code/micezhangdataset/")
+y1<-list(phy1=phy1, phy2=phy2)#
+class(y1) <- "multiPhylo"
+contree2<-ls.consensus(y1,tol=1e-3)
+ls()
+plot(contree2)
+load("/Users/yiweihsu/Dropbox/YiWeiHsu/Rcode/main.code/micezhangdataset/contree1.RData")
+load("/Users/yiweihsu/Dropbox/YiWeiHsu/Rcode/main.code/micezhangdataset/contree8.RData")
