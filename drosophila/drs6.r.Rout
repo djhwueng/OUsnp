@@ -1,0 +1,51 @@
+
+R version 3.5.0 (2018-04-23) -- "Joy in Playing"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R 是免費軟體，不提供任何擔保。
+在某些條件下您可以將其自由散布。
+用 'license()' 或 'licence()' 來獲得散布的詳細條件。
+
+R 是個合作計劃，有許多人為之做出了貢獻。
+用 'contributors()' 來看詳細的情況並且
+用 'citation()' 會告訴您如何在出版品中正確地參照 R 或 R 套件。
+
+用 'demo()' 來看一些示範程式，用 'help()' 來檢視線上輔助檔案，或
+用 'help.start()' 透過 HTML 瀏覽器來看輔助檔案。
+用 'q()' 離開 R。
+
+> # http://www.gwaspi.org/?page_id=671
+> # To install core packages:
+> # source("https://bioconductor.org/biocLite.R")
+> # biocLite()
+> # To install specific packages
+> # biocLite("snpStats")
+> # Read a PLINK binary data file as a SnpMatrix
+> # Description
+> # The package PLINK saves genome-wide association data in groups of three files, with the extensions .bed, .bim, and .fam. This function reads these files and creates an object of class "SnpMatrix"
+> rm(list=ls())
+> setwd("~/Documents/drosophila")
+> # install.packages("ape")
+> # install.packages("phytools")
+> # install.packages("geiger")
+> library(snpStats)
+Loading required package: survival
+Loading required package: Matrix
+> library(nlme)
+> library(geiger)
+Loading required package: ape
+> library(ape)
+> library(phytools)
+Loading required package: maps
+
+Attaching package: ‘phytools’
+
+The following object is masked from ‘package:Matrix’:
+
+    expm
+
+> source("~/Dropbox/YiWeiHsu/Rcode/main.code/DV_test.r")
+Error in library(phyclust) : there is no package called ‘phyclust’
+Calls: source -> withVisible -> eval -> eval -> library
+停止執行

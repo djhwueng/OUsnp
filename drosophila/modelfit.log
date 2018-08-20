@@ -1,0 +1,177 @@
+
+P A U P *
+Version 4.0a (build 161) for macOS (built on Mar 29 2018 at 14:16:12)
+Sat Jun 30 22:15:49 2018
+
+        -----------------------------NOTICE-----------------------------
+          This is an alpha-test version that is still changing rapidly.
+          It will expire on 1 Jul 2018.
+        
+          Please report bugs to dave@phylosolutions.com
+        ----------------------------------------------------------------
+
+
+***** BEGIN TESTING 56 MODELS OF EVOLUTION *****
+
+NOTE: The longFmt option in the Defaults command is no longer supported and has been ignored.
+
+Optimality criterion set to likelihood.
+
+** Model 1 of 56 * Calculating JC **
+
+Likelihood scores of tree(s) in memory:
+---------------------------------------
+  600826 characters are included
+  All characters have equal weight
+  Likelihood settings:
+    Current model:
+                             Data type = standard
+           Constant-character handling = likelihoods conditioned on assumption that only variable
+                                         characters are observed ("Mkv" model)
+                           State space = variable
+                     State frequencies = equal (required by model)
+
+    Number of distinct data patterns under this model = 445102
+    Molecular clock not enforced
+    Starting branch lengths obtained using Rogers-Swofford approximation method
+    Branch-length optimization = one-dimensional Newton-Raphson with pass limit=20, tolerance=1e-10
+    Likelihood calculations performed in double precision
+    Vector processing disabled (not currently supported for double-precision calculations)
+    Conditional-likelihood rescaling threshold = 1e-20
+
+Tree                 1
+----------------------
+-ln L   45483375.88080
+
+Time used to compute likelihoods = 00:08:51 (CPU time = 00:08:49.4)
+
+Tree scores (and parameter estimates) written to file: ~/Documents/drosophila/model.scores
+
+** Model 5 of 56 * Calculating F81 **
+
+Likelihood scores of tree(s) in memory:
+---------------------------------------
+  600826 characters are included
+  All characters have equal weight
+  Likelihood settings:
+    Current model:
+                             Data type = standard
+           Constant-character handling = likelihoods conditioned on assumption that only variable
+                                         characters are observed ("Mkv" model)
+                           State space = variable
+                     State frequencies = estimated
+
+    Number of distinct data patterns under this model = 445102
+    Molecular clock not enforced
+    Starting branch lengths obtained using Rogers-Swofford approximation method
+    Branch-length optimization = one-dimensional Newton-Raphson with pass limit=20, tolerance=1e-10
+    Likelihood calculations performed in double precision
+    Vector processing disabled (not currently supported for double-precision calculations)
+    Conditional-likelihood rescaling threshold = 1e-20
+
+Tree                 1
+----------------------
+-ln L   45483375.88080
+State frequencies:
+  0           0.500000
+  1           0.500000
+
+Time used to compute likelihoods = 00:46:20 (CPU time = 00:46:14.3)
+
+Tree scores (and parameter estimates) written to file: ~/Documents/drosophila/model.scores
+
+** Model 9 of 56 * Calculating K80 **
+
+Likelihood scores of tree(s) in memory:
+---------------------------------------
+  600826 characters are included
+  All characters have equal weight
+  Likelihood settings:
+    Current model:
+                             Data type = standard
+           Constant-character handling = likelihoods conditioned on assumption that only variable
+                                         characters are observed ("Mkv" model)
+                           State space = variable
+                     State frequencies = equal (required by model)
+
+    Number of distinct data patterns under this model = 445102
+    Molecular clock not enforced
+    Starting branch lengths obtained using Rogers-Swofford approximation method
+    Branch-length optimization = one-dimensional Newton-Raphson with pass limit=20, tolerance=1e-10
+    Likelihood calculations performed in double precision
+    Vector processing disabled (not currently supported for double-precision calculations)
+    Conditional-likelihood rescaling threshold = 1e-20
+
+Tree                 1
+----------------------
+-ln L   45483375.88080
+
+Time used to compute likelihoods = 00:07:06 (CPU time = 00:07:05.5)
+
+Tree scores (and parameter estimates) written to file: ~/Documents/drosophila/model.scores
+
+** Model 13 of 56 * Calculating HKY **
+
+Likelihood scores of tree(s) in memory:
+---------------------------------------
+  600826 characters are included
+  All characters have equal weight
+  Likelihood settings:
+    Current model:
+                             Data type = standard
+           Constant-character handling = likelihoods conditioned on assumption that only variable
+                                         characters are observed ("Mkv" model)
+                           State space = variable
+                     State frequencies = estimated
+
+    Number of distinct data patterns under this model = 445102
+    Molecular clock not enforced
+    Starting branch lengths obtained using Rogers-Swofford approximation method
+    Branch-length optimization = one-dimensional Newton-Raphson with pass limit=20, tolerance=1e-10
+    Likelihood calculations performed in double precision
+    Vector processing disabled (not currently supported for double-precision calculations)
+    Conditional-likelihood rescaling threshold = 1e-20
+
+Tree                 1
+----------------------
+-ln L   45483375.88080
+State frequencies:
+  0           0.500000
+  1           0.500000
+
+Time used to compute likelihoods = 00:45:01 (CPU time = 00:44:56.4)
+
+Tree scores (and parameter estimates) written to file: ~/Documents/drosophila/model.scores
+
+** Model 53 of 56 * Calculating GTR **
+
+Likelihood scores of tree(s) in memory:
+---------------------------------------
+  600826 characters are included
+  All characters have equal weight
+  Likelihood settings:
+    Current model:
+                             Data type = standard
+           Constant-character handling = likelihoods conditioned on assumption that only variable
+                                         characters are observed ("Mkv" model)
+                           State space = variable
+                     State frequencies = estimated
+
+    Number of distinct data patterns under this model = 445102
+    Molecular clock not enforced
+    Starting branch lengths obtained using Rogers-Swofford approximation method
+    Branch-length optimization = one-dimensional Newton-Raphson with pass limit=20, tolerance=1e-10
+    Likelihood calculations performed in double precision
+    Vector processing disabled (not currently supported for double-precision calculations)
+    Conditional-likelihood rescaling threshold = 1e-20
+
+Tree                 1
+----------------------
+-ln L   45483375.88080
+State frequencies:
+  0           0.500000
+  1           0.500000
+
+Time used to compute likelihoods = 00:44:58 (CPU time = 00:44:53.4)
+
+Tree scores (and parameter estimates) written to file: ~/Documents/drosophila/model.scores
